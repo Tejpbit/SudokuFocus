@@ -14,7 +14,6 @@ import dev.fredag.sudokufocus.model.Sudoku
 import kotlin.math.*
 
 
-
 fun DrawScope.drawRotarySelector(
     diameter: Float,
     zones: List<String>,
@@ -137,16 +136,17 @@ data class PolarCoordinate(val r: Float, val angle: Float) {
 }
 
 fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
-    val cellSize = min(size.height, size.width)
-    val rectSize = Size(cellSize / 9, cellSize / 9)
-    val cornerRad = CornerRadius(rectSize.width * 0.1f, rectSize.width * 0.1f)
+    val fieldWidth = min(size.height, size.width)
+    val cellWidth = fieldWidth / 9
+    val cellSize = Size(cellWidth, cellWidth)
+    val cornerRad = CornerRadius(cellSize.width * 0.1f, cellSize.width * 0.1f)
 
     for (coord in Coordinate(0, 0).getCoordinatesInBlockTo(Coordinate(8, 8))) {
-        val topLeft = Offset(coord.x * rectSize.width, coord.y * rectSize.height)
+        val topLeft = Offset(coord.x * cellSize.width, coord.y * cellSize.height)
         drawRoundRect(
             color = Color.Red,
             topLeft = topLeft,
-            size = rectSize,
+            size = cellSize,
             cornerRadius = cornerRad,
             style = Stroke(2f)
         )
@@ -155,8 +155,8 @@ fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
             drawIntoCanvas {
                 it.nativeCanvas.drawText(
                     submitted.toString(),
-                    topLeft.x + rectSize.width / 2,
-                    topLeft.y + rectSize.height / 2,
+                    topLeft.x + cellSize.width / 2,
+                    topLeft.y + cellSize.height / 2,
                     submittedValuePaint
                 )
             }
@@ -166,11 +166,27 @@ fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
             drawIntoCanvas {
                 it.nativeCanvas.drawText(
                     guessed.sorted().joinToString(" "),
-                    topLeft.x + rectSize.width / 2,
-                    topLeft.y + rectSize.height * 0.9f,
+                    topLeft.x + cellSize.width / 2,
+                    topLeft.y + cellSize.height * 0.9f,
                     guessValuePaint
                 )
             }
         }
+    }
+
+    // Thicker 3x3 divider lines
+    for (i in listOf(3, 6)) {
+        drawLine(
+            Color.Green,
+            start = Offset(0f, cellWidth * i),
+            end = Offset(cellWidth * 9, cellWidth * i),
+            strokeWidth = 5f,
+        )
+        drawLine(
+            Color.Green,
+            start = Offset(cellWidth * i, 0f),
+            end = Offset(cellWidth * i, cellWidth * 9),
+            strokeWidth = 5f,
+        )
     }
 }
