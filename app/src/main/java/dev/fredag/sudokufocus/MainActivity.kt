@@ -51,7 +51,6 @@ fun FieldActionSelector() {
             "7",
             "8",
             "9",
-            "x",
         )
     ) { section ->
         println("section $section")

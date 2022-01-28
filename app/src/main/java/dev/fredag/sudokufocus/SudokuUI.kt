@@ -1,5 +1,6 @@
 package dev.fredag.sudokufocus
 
+import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
@@ -8,12 +9,18 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
+import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParameters
+import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParametersProvider
 import kotlin.math.PI
 
 @Composable
@@ -31,11 +38,15 @@ fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: Strin
                 )
         ) {
             SudokuCanvas(
-                sudoku,
-                this@BoxWithConstraints.maxWidth,
-                this@BoxWithConstraints.maxHeight,
-                sectionClicked,
-                list
+                SudokuCanvasParameters(
+                    sudoku,
+                    this@BoxWithConstraints.maxWidth,
+                    this@BoxWithConstraints.maxHeight,
+                    sectionClicked,
+                    list,
+                    SelectorType.Grid
+                )
+
             )
         }
     }
@@ -60,15 +71,28 @@ val guessValuePaint = android.graphics.Paint().apply {
 }
 
 
+val gridSelectorSize = 500f
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
+@Preview
 fun SudokuCanvas(
-    sudoku: Sudoku,
-    parentWidth: Dp,
-    parentHeight: Dp,
-    sectionClicked: (section: String) -> Unit,
-    zones: List<String>
+    @PreviewParameter(SudokuCanvasParametersProvider::class) sudokuCanvasParameters: SudokuCanvasParameters,
 ) {
+    val (
+        sudoku,
+        parentWidth,
+        parentHeight,
+        sectionClicked,
+        zones,
+        selectorType,
+    ) = sudokuCanvasParameters
+
+    val activatedCellCalculator = when (selectorType) {
+        SelectorType.Grid -> GridActivatedCellCalulator(gridSelectorSize, zones)
+        SelectorType.Rotary -> TODO()
+    }
+
     val width = with(LocalDensity.current) {
         parentWidth.toPx()
     }
@@ -121,23 +145,46 @@ fun SudokuCanvas(
                     activeZone = if (thumbRad > 0) (thumbAngle / radiansPerZone).toInt() else null
                 }
                 MotionEvent.ACTION_UP -> {
-                    pos = Offset(0f, 0f)
-                    activeZone?.let { a ->
-                        sectionClicked(zones[a])
+                    touchDownPos?.let { touchDownPos ->
+                        pos?.let { pos ->
+                            activatedCellCalculator
+                                .calculateActivatedCell(touchDownPos, pos)
+                                ?.let { activatedCell ->
+                                    activatedCoord?.let { activatedCoord ->
+                                        when (activatedCell) {
+                                            "x" -> {
+                                                sudoku.clearCell(activatedCoord)
+                                            }
+                                            else -> {
+                                                sudoku.submitCell(
+                                                    activatedCell.toInt(),
+                                                    activatedCoord
+                                                )
+                                            }
+                                        }
 
-                        activatedCoord?.let {
-                            when (zones[a]) {
-                                "x" -> {
-                                    sudoku.clearCell(it)
+                                    }
                                 }
-                                else -> {
-                                    sudoku.submitCell(zones[a].toInt(), it)
-                                }
-                            }
-                            activatedCoord = null
                         }
-
                     }
+
+                    pos = Offset(0f, 0f)
+//                    activeZone?.let { a ->
+//                        sectionClicked(zones[a])
+//
+//                        activatedCoord?.let {
+//                            when (zones[a]) {
+//                                "x" -> {
+//                                    sudoku.clearCell(it)
+//                                }
+//                                else -> {
+//                                    sudoku.submitCell(zones[a].toInt(), it)
+//                                }
+//                            }
+//                            activatedCoord = null
+//                        }
+//
+//                    }
                     activeZone = null
 
 
@@ -147,9 +194,34 @@ fun SudokuCanvas(
         }
 
     ) {
-        activeZone?.let {
-            drawRotarySelector(arcDiameter, zones, touchDownPos, pos)
-        }
+
+
         drawSudokuField(sudoku, Size(width, height))
+        activeZone?.let {
+            when (selectorType) {
+                SelectorType.Grid -> {
+                    drawGridSelector(size = gridSelectorSize, touchDownPos, pos)
+                }
+                SelectorType.Rotary -> drawRotarySelector(arcDiameter, zones, touchDownPos, pos)
+
+            }
+        }
+    }
+}
+
+sealed class SelectorType {
+    object Rotary : SelectorType()
+    object Grid : SelectorType()
+}
+
+
+fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
+    drawIntoCanvas {
+        it.nativeCanvas.drawText(
+            text,
+            x,
+            y,
+            paint
+        )
     }
 }
