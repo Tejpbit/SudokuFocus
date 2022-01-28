@@ -25,7 +25,10 @@ fun DrawScope.drawRotarySelector(
     }
 
     val radiansPerZone = (2 * PI / zones.size).toFloat()
-    var (_, thumbAngle) = if (currentTouchPos == null) PolarCoordinate(1f, 0f) else PolarCoordinate.fromTwoCartesianCoordinates(
+    var (_, thumbAngle) = if (currentTouchPos == null) PolarCoordinate(
+        1f,
+        0f
+    ) else PolarCoordinate.fromTwoCartesianCoordinates(
         CartesianCoordinate(touchDownPos.x, touchDownPos.y),
         CartesianCoordinate(currentTouchPos.x, currentTouchPos.y)
     )
