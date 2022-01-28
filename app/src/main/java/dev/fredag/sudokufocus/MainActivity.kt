@@ -39,7 +39,8 @@ fun FieldActionSelector() {
         mutableStateOf(Sudoku())
     }
 
-    RotarySelector(
+    SudokuUI(
+        sudoku,
         listOf(
             "1",
             "2",
