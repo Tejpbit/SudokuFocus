@@ -9,20 +9,19 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 
-
-fun DrawScope.drawGridSelector(size: Float, touchDownPos: Offset?, currentPos: Offset?) {
+fun DrawScope.drawGridSelector(
+    size: Float,
+    touchDownPos: Offset?,
+    currentPos: Offset?,
+    scale: Float,
+    scroll: Offset
+) {
     if (touchDownPos == null) {
         return
     }
 
-    val cellDimension = size / 3
+    val cellDimension = (size / 3) / scale
     val topLeft = with(touchDownPos) { Offset(x - size / 2, y - size / 2) }
-//    drawRect(
-//        color = Color.Black,
-//        topLeft,
-//        size = Size(size, size),
-//        style = Fill,
-//    )
 
     val numbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9").iterator()
 
@@ -30,27 +29,38 @@ fun DrawScope.drawGridSelector(size: Float, touchDownPos: Offset?, currentPos: O
         for (i in 0..2) {
             val cellTopLeft = with(topLeft) { Offset(x + cellDimension * i, y + cellDimension * j) }
             val cellSize = Size(cellDimension, cellDimension)
+            val cornerRadius = CornerRadius(cellDimension * 0.3f, cellDimension * 0.3f)
             drawRoundRect(
-                color = Color(0,0,0,0xbb),
-                cornerRadius = CornerRadius(cellDimension * 0.3f, cellDimension * 0.3f),
+                color = Color(0, 0, 0, 0xbb),
+                cornerRadius = cornerRadius,
                 size = cellSize,
                 topLeft = cellTopLeft,
             )
 
             drawRoundRect(
-                color = Color(0xff,0,0,0xbb),
-                cornerRadius = CornerRadius(cellDimension * 0.3f, cellDimension * 0.3f),
+                color = Color(0xff, 0, 0, 0xbb),
+                cornerRadius = cornerRadius,
                 size = cellSize,
                 topLeft = cellTopLeft,
-                style = if (currentPos != null && isInside(currentPos, cellTopLeft,cellSize )) Stroke(2f) else Fill
+                style = if (currentPos != null && isInside(
+                        currentPos,
+                        cellTopLeft,
+                        cellSize
+                    )
+                ) Stroke(2f) else Fill
             )
             val cellTextPaint = android.graphics.Paint().apply {
                 textAlign = android.graphics.Paint.Align.CENTER
-                textSize = 64f
-                color = if (currentPos != null && isInside(currentPos, cellTopLeft,cellSize )) 0xffff0000.toInt() else 0xff000000.toInt()
+                textSize = 64f / scale
+                color = if (currentPos != null && isInside(
+                        currentPos,
+                        cellTopLeft,
+                        cellSize
+                    )
+                ) 0xffff0000.toInt() else 0xff000000.toInt()
             }
             drawText(
-                numbers.next(),//((i + 1) * (j + 1)).toString(),
+                numbers.next(),
                 cellTopLeft.x + cellDimension / 2,
                 cellTopLeft.y + cellDimension / 2 + cellDimension / 5,
                 cellTextPaint

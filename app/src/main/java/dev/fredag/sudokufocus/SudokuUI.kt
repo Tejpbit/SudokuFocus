@@ -3,6 +3,9 @@ package dev.fredag.sudokufocus
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
@@ -17,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -136,10 +140,26 @@ fun SudokuCanvas(
         mutableStateOf(null)
     }
 
+    var scale by remember { mutableStateOf(0.9f) }
+    var scroll by remember { mutableStateOf(Offset.Zero) }
+    val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+        scale *= zoomChange
+        scroll += offsetChange
+    }
+
     Canvas(modifier = Modifier
+        .background(Color.LightGray)
+        .graphicsLayer(
+            scaleX = scale,
+            scaleY = scale,
+            translationX = scroll.x,
+            translationY = scroll.y
+        )
+        .transformable(state = state)
         .fillMaxWidth()
-        .height(height.dp)
+        .height(parentWidth)
         .pointerInteropFilter {
+
             if (it.action == MotionEvent.ACTION_DOWN) {
                 val squareSize = width / 9
                 activatedCoord =
@@ -157,11 +177,16 @@ fun SudokuCanvas(
                     )
                     thumbAngle =
                         if (thumbAngle < 0) (thumbAngle + Math.PI * 2).toFloat() else thumbAngle
-                    activeZone = if (thumbRad > 0) (thumbAngle / radiansPerZone).toInt() else null
+                    activeZone =
+                        if (thumbRad > 0) (thumbAngle / radiansPerZone).toInt() else null
                 }
                 MotionEvent.ACTION_UP -> {
                     touchDownPos?.let { touchDownPos ->
                         pos?.let { pos ->
+
+                            activatedCellCalculator.calculateNextSudoku(
+                                sudoku, touchDownPos, pos
+                            )
                             activatedCellCalculator
                                 .calculateActivatedCell(touchDownPos, pos)
                                 ?.let { activatedCell ->
@@ -213,17 +238,24 @@ fun SudokuCanvas(
     ) {
 
 
-        drawSudokuField(sudoku, Size(width, height), primaryColor, secondaryColor, guessTextColor)
+        drawSudokuField(
+            sudoku,
+            Size(width, height),
+            primaryColor,
+            secondaryColor,
+            guessTextColor
+        )
         activeZone?.let {
             when (selectorType) {
                 SelectorType.Grid -> {
-                    drawGridSelector(size = gridSelectorSize, touchDownPos, pos)
+                    drawGridSelector(size = gridSelectorSize, touchDownPos, pos, scale, scroll)
                 }
                 SelectorType.Rotary -> drawRotarySelector(arcDiameter, zones, touchDownPos, pos)
 
             }
         }
     }
+
 }
 
 sealed class SelectorType {
@@ -243,7 +275,13 @@ fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
     }
 }
 
-fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size, primaryColor: Color, secondaryColor: Color,  guessTextColor: Color) {
+fun DrawScope.drawSudokuField(
+    sudoku: Sudoku,
+    size: Size,
+    primaryColor: Color,
+    secondaryColor: Color,
+    guessTextColor: Color
+) {
     val guessValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
         textSize = 24f
