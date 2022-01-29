@@ -52,20 +52,26 @@ fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: Strin
     }
 }
 
-val numberPickerPaint = android.graphics.Paint().apply {
-    textAlign = android.graphics.Paint.Align.CENTER
+val numberPickerPaint = Paint().apply {
+    textAlign = Paint.Align.CENTER
     textSize = 64f
     color = 0xff00ff00.toInt()
 }
 
-val submittedValuePaint = android.graphics.Paint().apply {
-    textAlign = android.graphics.Paint.Align.CENTER
+val submittedValuePaint = Paint().apply {
+    textAlign = Paint.Align.CENTER
     textSize = 64f
     color = 0xffff0000.toInt()
 }
 
-val guessValuePaint = android.graphics.Paint().apply {
-    textAlign = android.graphics.Paint.Align.CENTER
+val submittedLockedValuePaint = Paint().apply {
+    textAlign = Paint.Align.CENTER
+    textSize = 64f
+    color = 0xffff7777.toInt()
+}
+
+val guessValuePaint = Paint().apply {
+    textAlign = Paint.Align.CENTER
     textSize = 24f
     color = 0xffffffff.toInt()
 }
@@ -222,6 +228,63 @@ fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
             x,
             y,
             paint
+        )
+    }
+}
+
+fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
+    val fieldWidth = min(size.height, size.width)
+    val cellWidth = fieldWidth / 9
+    val cellSize = Size(cellWidth, cellWidth)
+    val cornerRad = CornerRadius(cellSize.width * 0.1f, cellSize.width * 0.1f)
+
+    for (coord in Coordinate(0, 0).getCoordinatesInBlockTo(Coordinate(8, 8))) {
+        val topLeft = Offset(coord.x * cellSize.width, coord.y * cellSize.height)
+        drawRoundRect(
+            color = Color.Red,
+            topLeft = topLeft,
+            size = cellSize,
+            cornerRadius = cornerRad,
+            style = Stroke(2f)
+        )
+
+        sudoku.getSubmittedValueAt(coord)?.let { submitted ->
+            drawIntoCanvas {
+                it.nativeCanvas.drawText(
+                    submitted.toString(),
+                    topLeft.x + cellSize.width / 2,
+                    topLeft.y + cellSize.height / 2,
+                    if (sudoku.isLocked(coord)) submittedValuePaint else submittedLockedValuePaint
+                )
+            }
+
+        }
+
+        sudoku.getGuessedValuesAt(coord)?.let { guessed ->
+            drawIntoCanvas {
+                it.nativeCanvas.drawText(
+                    guessed.sorted().joinToString(" "),
+                    topLeft.x + cellSize.width / 2,
+                    topLeft.y + cellSize.height * 0.9f,
+                    guessValuePaint
+                )
+            }
+        }
+    }
+
+    // Thicker 3x3 divider lines
+    for (i in listOf(3, 6)) {
+        drawLine(
+            Color.Green,
+            start = Offset(0f, cellWidth * i),
+            end = Offset(cellWidth * 9, cellWidth * i),
+            strokeWidth = 5f,
+        )
+        drawLine(
+            Color.Green,
+            start = Offset(cellWidth * i, 0f),
+            end = Offset(cellWidth * i, cellWidth * 9),
+            strokeWidth = 5f,
         )
     }
 }
