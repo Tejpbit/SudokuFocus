@@ -36,7 +36,7 @@ import kotlin.math.PI
 import kotlin.math.min
 
 @Composable
-fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: String) -> Unit) {
+fun SudokuUI(sudoku: Sudoku, list: List<String>, updateSudoku: (sudoku: Sudoku) -> Unit) {
     BoxWithConstraints(
         Modifier
             .fillMaxHeight()
@@ -49,17 +49,28 @@ fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: Strin
                     height = maxHeight,
                 )
         ) {
-            SudokuCanvas(
-                SudokuCanvasParameters(
-                    sudoku,
-                    this@BoxWithConstraints.maxWidth,
-                    this@BoxWithConstraints.maxHeight,
-                    sectionClicked,
-                    list,
-                    SelectorType.Grid
+            Column() {
+                Row() {
+                    Button(onClick = {
+                        updateSudoku(sudoku.autoFillGuesses())
+                    }) {
+                        Text(text = "Deduce guesses")
+                    }
+                    if (sudoku.isSolved()) {
+                        Text(text = "Solved!")
+                    }
+                }
+                SudokuCanvas(
+                    SudokuCanvasParameters(
+                        sudoku,
+                        this@BoxWithConstraints.maxWidth,
+                        this@BoxWithConstraints.maxHeight,
+                        updateSudoku,
+                        list,
+                        SelectorType.Grid
+                    )
                 )
-
-            )
+            }
         }
     }
 }
@@ -83,7 +94,7 @@ fun SudokuCanvas(
         sudoku,
         parentWidth,
         parentHeight,
-        sectionClicked,
+        updateSudoku,
         zones,
         selectorType,
     ) = sudokuCanvasParameters
@@ -160,9 +171,11 @@ fun SudokuCanvas(
                                                 sudoku.clearCell(activatedCoord)
                                             }
                                             else -> {
-                                                sudoku.submitCell(
-                                                    activatedCell.toInt(),
-                                                    activatedCoord
+                                                updateSudoku(
+                                                    sudoku.submitCell(
+                                                        activatedCell.toInt(),
+                                                        activatedCoord
+                                                    )
                                                 )
                                             }
                                         }

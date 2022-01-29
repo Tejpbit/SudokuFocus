@@ -5,7 +5,7 @@ import kotlin.random.Random
 
 class SudokuGenerator private constructor() {
     companion object {
-        fun generate(random: Random): Sudoku {
+        fun generate(random: Random, preSolved: Boolean = false): Sudoku {
             val firstRow = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9).shuffled(random)
             var rows = listOf(0, 3, 6, 1, 4, 7, 2, 5, 8).map {
                 val l = firstRow.toMutableList()
@@ -21,35 +21,45 @@ class SudokuGenerator private constructor() {
             }
 
             val sudokuGenerator = SudokuGenerator()
-            val grid = Grid(g)
-            sudokuGenerator.removeRandomCellUntilAmbigeous(grid, random)
+            val solvedGrid = Grid(g)
+            var grid = solvedGrid
+            grid = sudokuGenerator.removeRandomCellUntilAmbigeous(grid, random, 20)
 
+            return if (preSolved) {
+                Sudoku(solvedGrid, grid.getOccupiedCoordinates(), Grid())
+            } else {
+                Sudoku(grid, grid.getOccupiedCoordinates(), Grid())
+            }
 
-            return Sudoku(grid)
         }
     }
 
-    fun removeRandomCellUntilAmbigeous(grid: Grid<Int>, random: Random): Grid<Int> {
-        var prevGrid = grid.clone()
-        var _grid = grid.clone()
-        while (isSolvableWithoutGuessing(grid)) {
-            prevGrid = _grid.clone()
-            _grid = removeRandomCell(grid, random)
+    fun removeRandomCellUntilAmbigeous(grid: Grid<Int>, random: Random, cellsToRemove: Int): Grid<Int> {
+        var removedCells = 0
+        var prevGrid = grid
+        var nextGrid: Grid<Int>
+        for (i in 0 until cellsToRemove){
+            do {
+                nextGrid = removeRandomCell(prevGrid, random)
+                if (isSolvableWithoutGuessing(nextGrid)) {
+                    prevGrid = nextGrid
+                    removedCells++
+                }
+            } while (removedCells < cellsToRemove)
         }
+
         return prevGrid
     }
 
     fun removeRandomCell(grid: Grid<Int>, random: Random): Grid<Int> {
         val randomCoord = grid.getOccupiedCoordinates().random(random)
-        grid.clear(randomCoord)
-        return grid
+        return grid.clear(randomCoord)
     }
 }
 
 
 fun possibleTokensForCoordinate(grid: Grid<Int>, coordinate: Coordinate): Set<Int> {
     val allTokens = setOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
-    //var occupiedCoords = grid.getOccupiedCoordinates().toSet()
     val busyTokens = grid.getOccupiedCellsOnRowAndCol(coordinate).toSet()
     return allTokens.minus(busyTokens)
 }

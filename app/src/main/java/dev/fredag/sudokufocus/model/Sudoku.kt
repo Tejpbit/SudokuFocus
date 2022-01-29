@@ -5,17 +5,11 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
-data class Sudoku(private val submittedGrid: Grid<Int>) {
-    private val lockedCoordinates: Set<Coordinate> = submittedGrid.map {
-        it.first
-    }.toSet()
-    private val guessGrid = Grid<MutableSet<Int>>()
-
-    constructor() : this(Grid(mutableMapOf()))
-
-    init {
-    }
-
+data class Sudoku(
+    private val submittedGrid: Grid<Int>,
+    private val lockedCoordinates: Set<Coordinate>,
+    private val guessGrid: Grid<Set<Int>>
+) {
     fun getSubmittedValueAt(coord: Coordinate): Int? {
         return submittedGrid.getAt(coord)
     }
@@ -28,26 +22,90 @@ data class Sudoku(private val submittedGrid: Grid<Int>) {
         return lockedCoordinates.contains(coord)
     }
 
-    fun submitCell(number: Int, coord: Coordinate) {
-        if (!lockedCoordinates.contains(coord))
-            submittedGrid.write(coord, number)
-    }
-
-    fun clearCell(coord: Coordinate) {
-        submittedGrid.clear(coord)
-    }
-
-    fun toggleGuessOnCell(number: Int, coord: Coordinate) {
-        guessGrid.modify(coord) {
-            it?.let {
-                if (!it.contains(number)) {
-                    it.add(number)
-                } else {
-                    it.remove(number)
-                }
-                it
-            } ?: mutableSetOf(number)
+    fun submitCell(number: Int, coord: Coordinate): Sudoku {
+        if (!lockedCoordinates.contains(coord)) {
+            val submittedGrid = submittedGrid.write(coord, number)
+            return Sudoku(submittedGrid, lockedCoordinates, guessGrid)
         }
+        return this
+    }
+
+    fun clearCell(coord: Coordinate): Sudoku {
+        if (!lockedCoordinates.contains(coord)) {
+            val submittedGrid = submittedGrid.clear(coord)
+            Sudoku(submittedGrid, lockedCoordinates, guessGrid)
+        }
+        return this
+    }
+
+    fun autoFillGuesses(): Sudoku {
+        var newGuessGrid = Grid<Set<Int>>()
+        submittedGrid.getEmptyCoordinatesInRange(Coordinate(0, 0), Coordinate(8, 8)).forEach {
+            newGuessGrid = newGuessGrid.write(
+                it,
+                possibleTokensForCoordinate(submittedGrid, it).toMutableSet()
+            )
+        }
+        return Sudoku(submittedGrid, lockedCoordinates, newGuessGrid)
+    }
+
+    fun toggleGuessOnCell(number: Int, coord: Coordinate): Sudoku {
+        if (!lockedCoordinates.contains(coord)) {
+            val guessGrid = guessGrid.modify(coord) {
+                it?.let {
+                    val newGuesses = it.toMutableSet()
+                    if (!it.contains(number)) {
+                        newGuesses.add(number)
+                    } else {
+                        newGuesses.remove(number)
+                    }
+                    it
+                } ?: setOf(number)
+            }
+            return Sudoku(submittedGrid, lockedCoordinates, guessGrid)
+        }
+        return this
+
+    }
+
+    fun contains9UniqueTokens(list: List<Int>): Boolean {
+        return list.size == 9 && list.size == list.toSet().size
+    }
+
+    fun isSolved(): Boolean {
+        for (i in 0..8) {
+            val coordinatesInBlockTo = Coordinate(0, i).getCoordinatesInBlockTo(Coordinate(8, i))
+            val numbersInRow = coordinatesInBlockTo
+                .mapNotNull {
+                    submittedGrid.getAt(it)
+                }
+
+            val coordinatesInBlockTo1 = Coordinate(i, 0).getCoordinatesInBlockTo(Coordinate(i, 8))
+            val numbersInColumn = coordinatesInBlockTo1
+                .mapNotNull {
+                    submittedGrid.getAt(it)
+                }
+
+            val upperLeftOfSquare = Coordinate((i % 3)*3, (i / 3)*3)
+            val coordinatesInBlockTo2 =
+                upperLeftOfSquare.getCoordinatesInBlockTo(upperLeftOfSquare.move(2, 2))
+            val numbersIn3by3 =
+                coordinatesInBlockTo2
+                    .mapNotNull { submittedGrid.getAt(it) }
+
+            if (
+                !contains9UniqueTokens(numbersInRow) ||
+                !contains9UniqueTokens(numbersInColumn) ||
+                !contains9UniqueTokens(
+                    numbersIn3by3
+                )
+            ) {
+                return false
+            }
+        }
+
+
+        return true
     }
 
     companion object {
@@ -56,17 +114,26 @@ data class Sudoku(private val submittedGrid: Grid<Int>) {
             return generateFromSeed("${now.year}${now.dayOfYear}".toInt())
         }
 
+        fun generateSolvedDaily(): Sudoku {
+            val now = LocalDateTime.now()
+            return generateSolvedFromSeed("${now.year}${now.dayOfYear}".toInt())
+        }
+
         fun generateFromSeed(seed: Int): Sudoku {
             return SudokuGenerator.generate(Random(seed))
+        }
+
+        fun generateSolvedFromSeed(seed: Int): Sudoku {
+            return SudokuGenerator.generate(Random(seed), true)
         }
     }
 }
 
-data class Grid<T>(private val grid: MutableMap<Coordinate, T> = mutableMapOf()) :
+data class Grid<T>(private val grid: Map<Coordinate, T> = mapOf()) :
     Iterable<Pair<Coordinate, T>>, Cloneable {
 
     public override fun clone(): Grid<T> {
-        return Grid(grid.toMutableMap())
+        return Grid(grid)
     }
 
     fun getOccupiedCoordinates() = grid.keys
@@ -92,22 +159,27 @@ data class Grid<T>(private val grid: MutableMap<Coordinate, T> = mutableMapOf())
         return grid[coord]
     }
 
-    fun write(coord: Coordinate, value: T) {
-        grid[coord] = value
+    fun write(coord: Coordinate, value: T): Grid<T> {
+        val new = grid.toMutableMap()
+        new[coord] = value
+        return Grid(new)
     }
 
-    fun modify(coord: Coordinate, updateFunction: (prev: T?) -> T) {
-        grid[coord] = updateFunction(grid[coord])
+    fun modify(coord: Coordinate, updateFunction: (prev: T?) -> T): Grid<T> {
+        val new = grid.toMutableMap()
+        new[coord] = updateFunction(grid[coord])
+        return Grid(new)
     }
 
-    fun clear(coord: Coordinate) {
-        grid.remove(coord)
+    fun clear(coord: Coordinate): Grid<T> {
+        val new = grid.toMutableMap()
+        new.remove(coord)
+        return Grid(new)
     }
 
     override fun iterator(): Iterator<Pair<Coordinate, T>> {
         return grid.entries.map { e -> Pair(e.key, e.value) }.iterator()
     }
-
 }
 
 data class Coordinate(val x: Int, val y: Int) {
@@ -126,5 +198,11 @@ data class Coordinate(val x: Int, val y: Int) {
             }
         }
         return ret
+    }
+
+    fun move(x: Int, y: Int) = Coordinate(this.x + x, this.y + y)
+
+    override fun toString(): String {
+        return "($x,$y)"
     }
 }

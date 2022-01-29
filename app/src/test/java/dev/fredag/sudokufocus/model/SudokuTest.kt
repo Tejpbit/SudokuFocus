@@ -8,12 +8,18 @@ class SudokuTest {
 
     @Test
     fun toggleGuessOnCell() {
-        val s = Sudoku()
+        var s = Sudoku(Grid(), setOf(), Grid())
 
-        s.toggleGuessOnCell(5, Coordinate(5, 5))
-        s.toggleGuessOnCell(6, Coordinate(5, 5))
+        s = s.toggleGuessOnCell(5, Coordinate(5, 5))
+        s = s.toggleGuessOnCell(6, Coordinate(5, 5))
 
         assertTrue(s.getGuessedValuesAt(Coordinate(5, 5))?.contains(5) == true)
         assertTrue(s.getGuessedValuesAt(Coordinate(5, 5))?.contains(6) == true)
+    }
+
+    @Test
+    fun isSolvedWorks() {
+        val s = Sudoku.generateSolvedDaily()
+        assertTrue(s.isSolved())
     }
 }
