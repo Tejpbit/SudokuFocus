@@ -3,9 +3,9 @@ package dev.fredag.sudokufocus
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -18,11 +18,16 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.alpha
+import androidx.core.graphics.blue
+import androidx.core.graphics.green
+import androidx.core.graphics.red
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParameters
@@ -36,7 +41,6 @@ fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: Strin
         Modifier
             .fillMaxHeight()
             .width(400.dp)
-            .background(Color.Black)
     ) {
         Box(
             Modifier
@@ -66,24 +70,6 @@ val numberPickerPaint = Paint().apply {
     color = 0xff00ff00.toInt()
 }
 
-val submittedValuePaint = Paint().apply {
-    textAlign = Paint.Align.CENTER
-    textSize = 64f
-    color = 0xffff0000.toInt()
-}
-
-val submittedLockedValuePaint = Paint().apply {
-    textAlign = Paint.Align.CENTER
-    textSize = 64f
-    color = 0xffff7777.toInt()
-}
-
-val guessValuePaint = Paint().apply {
-    textAlign = Paint.Align.CENTER
-    textSize = 24f
-    color = 0xffffffff.toInt()
-}
-
 
 val gridSelectorSize = 500f
 
@@ -101,6 +87,10 @@ fun SudokuCanvas(
         zones,
         selectorType,
     ) = sudokuCanvasParameters
+
+    val primaryColor = MaterialTheme.colors.primary
+    val secondaryColor = MaterialTheme.colors.secondary
+    val guessTextColor = MaterialTheme.colors.onBackground
 
     val activatedCellCalculator = when (selectorType) {
         SelectorType.Grid -> GridActivatedCellCalulator(gridSelectorSize, zones)
@@ -210,7 +200,7 @@ fun SudokuCanvas(
     ) {
 
 
-        drawSudokuField(sudoku, Size(width, height))
+        drawSudokuField(sudoku, Size(width, height), primaryColor, secondaryColor, guessTextColor)
         activeZone?.let {
             when (selectorType) {
                 SelectorType.Grid -> {
@@ -240,7 +230,25 @@ fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
     }
 }
 
-fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
+fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size, primaryColor: Color, secondaryColor: Color,  guessTextColor: Color) {
+    val guessValuePaint = Paint().apply {
+        textAlign = Paint.Align.CENTER
+        textSize = 24f
+        color = colorToInt(guessTextColor)
+    }
+
+    val submittedValuePaint = Paint().apply {
+        textAlign = Paint.Align.CENTER
+        textSize = 64f
+        color = colorToInt(primaryColor)
+    }
+
+    val submittedLockedValuePaint = Paint().apply {
+        textAlign = Paint.Align.CENTER
+        textSize = 64f
+        color = colorToInt(secondaryColor)
+    }
+
     val fieldWidth = min(size.height, size.width)
     val cellWidth = fieldWidth / 9
     val cellSize = Size(cellWidth, cellWidth)
@@ -249,7 +257,7 @@ fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
     for (coord in Coordinate(0, 0).getCoordinatesInBlockTo(Coordinate(8, 8))) {
         val topLeft = Offset(coord.x * cellSize.width, coord.y * cellSize.height)
         drawRoundRect(
-            color = Color.Red,
+            color = secondaryColor,
             topLeft = topLeft,
             size = cellSize,
             cornerRadius = cornerRad,
@@ -257,26 +265,21 @@ fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
         )
 
         sudoku.getSubmittedValueAt(coord)?.let { submitted ->
-            drawIntoCanvas {
-                it.nativeCanvas.drawText(
-                    submitted.toString(),
-                    topLeft.x + cellSize.width / 2,
-                    topLeft.y + cellSize.height / 2,
-                    if (sudoku.isLocked(coord)) submittedValuePaint else submittedLockedValuePaint
-                )
-            }
-
+            drawText(
+                submitted.toString(),
+                topLeft.x + cellSize.width / 2,
+                topLeft.y + cellSize.height / 2,
+                if (sudoku.isLocked(coord)) submittedValuePaint else submittedLockedValuePaint
+            )
         }
 
         sudoku.getGuessedValuesAt(coord)?.let { guessed ->
-            drawIntoCanvas {
-                it.nativeCanvas.drawText(
-                    guessed.sorted().joinToString(" "),
-                    topLeft.x + cellSize.width / 2,
-                    topLeft.y + cellSize.height * 0.9f,
-                    guessValuePaint
-                )
-            }
+            drawText(
+                guessed.sorted().joinToString(" "),
+                topLeft.x + cellSize.width / 2,
+                topLeft.y + cellSize.height * 0.9f,
+                guessValuePaint
+            )
         }
     }
 
@@ -296,3 +299,10 @@ fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size) {
         )
     }
 }
+
+private fun colorToInt(color: Color) = android.graphics.Color.argb(
+    color.toArgb().alpha,
+    color.toArgb().red,
+    color.toArgb().green,
+    color.toArgb().blue
+)
