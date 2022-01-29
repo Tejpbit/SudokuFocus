@@ -1,16 +1,19 @@
 package dev.fredag.sudokufocus.model
 
+import java.time.LocalDateTime
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
-class Sudoku {
-    private val submittedGrid = Grid<Int>()
+data class Sudoku(private val submittedGrid: Grid<Int>) {
+    private val lockedCoordinates: Set<Coordinate> = submittedGrid.map {
+        it.first
+    }.toSet()
     private val guessGrid = Grid<MutableSet<Int>>()
 
+    constructor() : this(Grid(mutableMapOf()))
+
     init {
-        submitCell(0, Coordinate(0, 0))
-        toggleGuessOnCell(5, Coordinate(0, 1))
-        toggleGuessOnCell(4, Coordinate(0, 1))
     }
 
     fun getSubmittedValueAt(coord: Coordinate): Int? {
@@ -21,8 +24,13 @@ class Sudoku {
         return guessGrid.getAt(coord)
     }
 
+    fun isLocked(coord: Coordinate): Boolean {
+        return lockedCoordinates.contains(coord)
+    }
+
     fun submitCell(number: Int, coord: Coordinate) {
-        submittedGrid.write(coord, number)
+        if (!lockedCoordinates.contains(coord))
+            submittedGrid.write(coord, number)
     }
 
     fun clearCell(coord: Coordinate) {
@@ -41,9 +49,44 @@ class Sudoku {
             } ?: mutableSetOf(number)
         }
     }
+
+    companion object {
+        fun generateDaily(): Sudoku {
+            val now = LocalDateTime.now()
+            return generateFromSeed("${now.year}${now.dayOfYear}".toInt())
+        }
+
+        fun generateFromSeed(seed: Int): Sudoku {
+            return SudokuGenerator.generate(Random(seed))
+        }
+    }
 }
 
-data class Grid<T>(private val grid: MutableMap<Coordinate, T> = mutableMapOf()) {
+data class Grid<T>(private val grid: MutableMap<Coordinate, T> = mutableMapOf()) :
+    Iterable<Pair<Coordinate, T>>, Cloneable {
+
+    public override fun clone(): Grid<T> {
+        return Grid(grid.toMutableMap())
+    }
+
+    fun getOccupiedCoordinates() = grid.keys
+
+    fun getEmptyCoordinatesInRange(from: Coordinate, to: Coordinate): Set<Coordinate> {
+        val allCoords = from.getCoordinatesInBlockTo(to).toSet()
+        return allCoords.minus(getOccupiedCoordinates())
+    }
+
+    fun getOccupiedCellsOnRow(row: Int): List<T> {
+        return grid.keys.filter { it.y == row }.map { grid[it]!! }.toList()
+    }
+
+    fun getOccupiedCellsOnColumn(col: Int): List<T> {
+        return grid.keys.filter { it.x == col }.map { grid[it]!! }.toList()
+    }
+
+    fun getOccupiedCellsOnRowAndCol(coord: Coordinate): List<T> {
+        return getOccupiedCellsOnRow(coord.y) + getOccupiedCellsOnColumn(coord.x)
+    }
 
     fun getAt(coord: Coordinate): T? {
         return grid[coord]
@@ -60,6 +103,11 @@ data class Grid<T>(private val grid: MutableMap<Coordinate, T> = mutableMapOf())
     fun clear(coord: Coordinate) {
         grid.remove(coord)
     }
+
+    override fun iterator(): Iterator<Pair<Coordinate, T>> {
+        return grid.entries.map { e -> Pair(e.key, e.value) }.iterator()
+    }
+
 }
 
 data class Coordinate(val x: Int, val y: Int) {

@@ -3,13 +3,19 @@ package dev.fredag.sudokufocus
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.Button
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -22,6 +28,7 @@ import dev.fredag.sudokufocus.model.Sudoku
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParameters
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParametersProvider
 import kotlin.math.PI
+import kotlin.math.min
 
 @Composable
 fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: String) -> Unit) {
@@ -29,6 +36,7 @@ fun SudokuUI(sudoku: Sudoku, list: List<String>, sectionClicked: (seciton: Strin
         Modifier
             .fillMaxHeight()
             .width(400.dp)
+            .background(Color.Black)
     ) {
         Box(
             Modifier
