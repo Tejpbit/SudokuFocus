@@ -49,6 +49,10 @@ data class Sudoku(
         return Sudoku(submittedGrid, lockedCoordinates, newGuessGrid)
     }
 
+    fun clearGuessesOnCell(coord: Coordinate): Sudoku {
+        return Sudoku(submittedGrid, lockedCoordinates, guessGrid.clear(coord))
+    }
+
     fun toggleGuessOnCell(number: Int, coord: Coordinate): Sudoku {
         if (!lockedCoordinates.contains(coord)) {
             val guessGrid = guessGrid.modify(coord) {

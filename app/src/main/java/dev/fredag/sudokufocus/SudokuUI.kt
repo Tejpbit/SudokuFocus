@@ -122,9 +122,6 @@ fun SudokuCanvas(
     var pos: Offset? by remember {
         mutableStateOf(null)
     }
-    var activeZone: Int? by remember {
-        mutableStateOf(null)
-    }
 
     val radiansPerZone = (2 * PI / zones.size).toFloat()
 
@@ -135,15 +132,26 @@ fun SudokuCanvas(
     var activatedCoord: Coordinate? by remember {
         mutableStateOf(null)
     }
+    val squareSize = width / 9
+
+    var selectorPos: Offset? by remember {
+        mutableStateOf(null)
+    }
+
 
     Canvas(modifier = Modifier
         .fillMaxWidth()
         .height(height.dp)
         .pointerInteropFilter {
             if (it.action == MotionEvent.ACTION_DOWN) {
-                val squareSize = width / 9
                 activatedCoord =
                     Coordinate((it.x / squareSize).toInt(), (it.y / squareSize).toInt())
+                selectorPos = activatedCoord?.let { activatedCoord ->
+                    Offset(
+                        activatedCoord.x * squareSize + squareSize / 2,
+                        activatedCoord.y * squareSize + squareSize / 2
+                    )
+                }
                 touchDownPos = Offset(it.x, it.y)
             }
 
@@ -157,54 +165,24 @@ fun SudokuCanvas(
                     )
                     thumbAngle =
                         if (thumbAngle < 0) (thumbAngle + Math.PI * 2).toFloat() else thumbAngle
-                    activeZone = if (thumbRad > 0) (thumbAngle / radiansPerZone).toInt() else null
                 }
                 MotionEvent.ACTION_UP -> {
-                    touchDownPos?.let { touchDownPos ->
+                    selectorPos?.let { selectorPos ->
                         pos?.let { pos ->
-                            activatedCellCalculator
-                                .calculateActivatedCell(touchDownPos, pos)
-                                ?.let { activatedCell ->
-                                    activatedCoord?.let { activatedCoord ->
-                                        when (activatedCell) {
-                                            "x" -> {
-                                                sudoku.clearCell(activatedCoord)
-                                            }
-                                            else -> {
-                                                updateSudoku(
-                                                    sudoku.submitCell(
-                                                        activatedCell.toInt(),
-                                                        activatedCoord
-                                                    )
-                                                )
-                                            }
-                                        }
-
-                                    }
-                                }
+                            activatedCoord?.let { activatedCoord ->
+                                updateSudoku(
+                                    activatedCellCalculator.calculateNextSudoku(
+                                        sudoku,
+                                        selectorPos,
+                                        pos,
+                                        activatedCoord
+                                    )
+                                )
+                            }
                         }
                     }
-
-                    pos = Offset(0f, 0f)
-//                    activeZone?.let { a ->
-//                        sectionClicked(zones[a])
-//
-//                        activatedCoord?.let {
-//                            when (zones[a]) {
-//                                "x" -> {
-//                                    sudoku.clearCell(it)
-//                                }
-//                                else -> {
-//                                    sudoku.submitCell(zones[a].toInt(), it)
-//                                }
-//                            }
-//                            activatedCoord = null
-//                        }
-//
-//                    }
-                    activeZone = null
-
-
+                    selectorPos = null
+                    pos = null
                 }
             }
             true
@@ -214,14 +192,16 @@ fun SudokuCanvas(
 
 
         drawSudokuField(sudoku, Size(width, height), primaryColor, secondaryColor, guessTextColor)
-        activeZone?.let {
-            when (selectorType) {
-                SelectorType.Grid -> {
-                    drawGridSelector(size = gridSelectorSize, touchDownPos, pos)
-                }
-                SelectorType.Rotary -> drawRotarySelector(arcDiameter, zones, touchDownPos, pos)
-
+        when (selectorType) {
+            SelectorType.Grid -> {
+                drawGridSelector(
+                    size = gridSelectorSize,
+                    selectorPos,
+                    pos
+                )
             }
+            SelectorType.Rotary -> drawRotarySelector(arcDiameter, zones, touchDownPos, pos)
+
         }
     }
 }
@@ -243,7 +223,13 @@ fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
     }
 }
 
-fun DrawScope.drawSudokuField(sudoku: Sudoku, size: Size, primaryColor: Color, secondaryColor: Color,  guessTextColor: Color) {
+fun DrawScope.drawSudokuField(
+    sudoku: Sudoku,
+    size: Size,
+    primaryColor: Color,
+    secondaryColor: Color,
+    guessTextColor: Color
+) {
     val guessValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
         textSize = 24f
