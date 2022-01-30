@@ -10,12 +10,12 @@ class SudokuCanvasParametersProvider : PreviewParameterProvider<SudokuCanvasPara
     override val values: Sequence<SudokuCanvasParameters>
         get() = sequence {
             SudokuCanvasParameters(
-                Sudoku(),
+                Sudoku.generateFromSeed(123),
                 100.dp,
                 100.dp,
-                sectionClicked = {},
+                updateSudoku = {},
                 zones = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9"),
-                selectorType = SelectorType.Grid
+                selectorType = SelectorType.Grid,
             )
         }
 
@@ -26,7 +26,7 @@ data class SudokuCanvasParameters(
     val sudoku: Sudoku,
     val parentWidth: Dp,
     val parentHeight: Dp,
-    val sectionClicked: (section: String) -> Unit,
+    val updateSudoku: (sudoku: Sudoku) -> Unit,
     val zones: List<String>,
-    val selectorType: SelectorType
+    val selectorType: SelectorType,
 )
