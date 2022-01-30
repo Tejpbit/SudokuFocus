@@ -33,7 +33,7 @@ data class Sudoku(
     fun clearCell(coord: Coordinate): Sudoku {
         if (!lockedCoordinates.contains(coord)) {
             val submittedGrid = submittedGrid.clear(coord)
-            Sudoku(submittedGrid, lockedCoordinates, guessGrid)
+            return Sudoku(submittedGrid, lockedCoordinates, guessGrid)
         }
         return this
     }
@@ -59,7 +59,7 @@ data class Sudoku(
                     } else {
                         newGuesses.remove(number)
                     }
-                    it
+                    newGuesses
                 } ?: setOf(number)
             }
             return Sudoku(submittedGrid, lockedCoordinates, guessGrid)
