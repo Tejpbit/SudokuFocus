@@ -5,8 +5,27 @@ import androidx.compose.ui.geometry.Size
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
 import java.lang.IllegalArgumentException
+import kotlin.math.PI
+import kotlin.math.abs
 
+/**
+ * ActivatedCellCalculator allows different implementations for the number selector that pops up on screen when a user
+ * interacts with the sudoku.
+ *
+ */
 interface ActivatedCellCalculator {
+
+    /**
+     * Derive the activated number. Used for drawing and helps with creating the next sudoku
+     */
+    fun calculateActivatedCell(touchDownPos: Offset, releasePos: Offset): String?
+
+    /**
+     * @param sudoku: The current sudoku state
+     * @param touchDownPos center coordinate of cell that the user started touching
+     * @param releasePos coordinate where user releases the gesture
+     * @param activatedCoord the coordinate that that this gesture affects in the sudoku
+     */
     fun calculateNextSudoku(
         sudoku: Sudoku,
         touchDownPos: Offset,
@@ -25,7 +44,7 @@ class GridActivatedCellCalulator(private val size: Float, private val fields: Li
 
     }
 
-    private fun calculateActivatedCell(touchDownPos: Offset, releasePos: Offset): String? {
+    override fun calculateActivatedCell(touchDownPos: Offset, releasePos: Offset): String? {
         val cellDimension = size / 3
         val topLeft = with(touchDownPos) { Offset(x - size / 2, y - size / 2) }
 
@@ -54,41 +73,16 @@ class GridActivatedCellCalulator(private val size: Float, private val fields: Li
         activatedCoord: Coordinate
     ): Sudoku {
         return calculateActivatedCell(touchDownPos, releasePos)?.let { activatedToken ->
-            val previouslySubmittedValue = sudoku.getSubmittedValueAt(activatedCoord)
-            val previouslyGuessedValue = sudoku.getGuessedValuesAt(activatedCoord)
-
-            return when {
-                (previouslySubmittedValue == null && previouslyGuessedValue == null) -> {
-                    sudoku.submitCell(activatedToken.toInt(), activatedCoord)
-                }
-                previouslySubmittedValue == activatedToken.toInt() && previouslyGuessedValue == null -> {
-                    sudoku.clearCell(activatedCoord)
-                }
-                previouslySubmittedValue != null && previouslyGuessedValue == null -> {
-                    sudoku
-                        .clearCell(activatedCoord)
-                        .toggleGuessOnCell(activatedToken.toInt(), activatedCoord)
-                        .toggleGuessOnCell(previouslySubmittedValue, activatedCoord)
-                }
-                previouslySubmittedValue == null && previouslyGuessedValue != null &&
-                        previouslyGuessedValue.contains(activatedToken.toInt()) -> {
-                    sudoku
-                        .submitCell(activatedToken.toInt(), activatedCoord)
-                        .clearGuessesOnCell(activatedCoord)
-                }
-                previouslySubmittedValue == null && previouslyGuessedValue != null -> {
-                    sudoku
-                        .toggleGuessOnCell(activatedToken.toInt(), activatedCoord)
-                }
-                else -> {
-                    sudoku
-                }
-            }
+            sudokuInteractionStrategy(sudoku, activatedCoord, activatedToken)
         } ?: sudoku
     }
 }
 
-class RotartyActivatedCellCelculator() : ActivatedCellCalculator {
+class RotaryActivatedCellCelculator(val zones: List<String>) : ActivatedCellCalculator {
+    override fun calculateActivatedCell(touchDownPos: Offset, releasePos: Offset): String? {
+        TODO("Not yet implemented")
+    }
+
     override fun calculateNextSudoku(
         sudoku: Sudoku,
         touchDownPos: Offset,
@@ -98,4 +92,98 @@ class RotartyActivatedCellCelculator() : ActivatedCellCalculator {
         TODO("Not yet implemented")
     }
 
+}
+
+class RotaryWithCenterActivatedCellCelculator(
+    val outerRadius: Float,
+    val centerRadius: Float,
+    val zones: List<String>,
+    val center: String
+) : ActivatedCellCalculator {
+    override fun calculateActivatedCell(touchDownPos: Offset, releasePos: Offset): String? {
+        val thumbDistanceFromCenter =
+            hypotenuse(abs(touchDownPos.x - releasePos.x), abs(touchDownPos.y - releasePos.y))
+
+        if (thumbDistanceFromCenter < centerRadius) {
+            return center
+        }
+
+
+        val radiansPerZone = (2 * PI / zones.size).toFloat()
+        var (_, thumbAngle) = PolarCoordinate.fromTwoCartesianCoordinates(
+            CartesianCoordinate(touchDownPos.x, touchDownPos.y),
+            CartesianCoordinate(releasePos.x, releasePos.y)
+        )
+
+        for ((zoneIndex, zone) in zones.withIndex()) {
+            val i = zoneIndex.toFloat()
+            val startLineAngle =
+                i * radiansPerZone +
+                        radiansPerZone / 2 +// offset by half a sector to not have horizontal lines
+                        Math.PI.toFloat() // offset by half to have first zone be up to the left.
+            val endLineAngle = startLineAngle + radiansPerZone
+
+            if (thumbAngle < startLineAngle) {
+                thumbAngle += (Math.PI*2).toFloat()
+            }
+
+            if (startLineAngle < thumbAngle && thumbAngle < endLineAngle) {
+                return zone
+            }
+        }
+
+
+        return null
+    }
+
+    override fun calculateNextSudoku(
+        sudoku: Sudoku,
+        touchDownPos: Offset,
+        releasePos: Offset,
+        activatedCoord: Coordinate
+    ): Sudoku {
+        return calculateActivatedCell(touchDownPos, releasePos)?.let { activatedToken ->
+            sudokuInteractionStrategy(sudoku, activatedCoord, activatedToken)
+        } ?: sudoku
+
+    }
+
+
+}
+
+private fun sudokuInteractionStrategy(
+    sudoku: Sudoku,
+    activatedCoord: Coordinate,
+    activatedToken: String
+): Sudoku {
+    val previouslySubmittedValue = sudoku.getSubmittedValueAt(activatedCoord)
+    val previouslyGuessedValue = sudoku.getGuessedValuesAt(activatedCoord)
+
+    return when {
+        (previouslySubmittedValue == null && previouslyGuessedValue == null) -> {
+            sudoku.submitCell(activatedToken.toInt(), activatedCoord)
+        }
+        previouslySubmittedValue == activatedToken.toInt() && previouslyGuessedValue == null -> {
+            sudoku.clearCell(activatedCoord)
+        }
+        previouslySubmittedValue != null && previouslyGuessedValue == null -> {
+            sudoku
+                .clearCell(activatedCoord)
+                .toggleGuessOnCell(activatedToken.toInt(), activatedCoord)
+                .toggleGuessOnCell(previouslySubmittedValue, activatedCoord)
+        }
+        previouslySubmittedValue == null && previouslyGuessedValue != null &&
+                previouslyGuessedValue.contains(activatedToken.toInt()) -> {
+            sudoku
+                .submitCell(activatedToken.toInt(), activatedCoord)
+                .clearGuessesOnCell(activatedCoord)
+        }
+        previouslySubmittedValue == null && previouslyGuessedValue != null -> {
+            sudoku
+                .toggleGuessOnCell(activatedToken.toInt(), activatedCoord)
+        }
+        else -> {
+            sudoku
+        }
+    }
 }

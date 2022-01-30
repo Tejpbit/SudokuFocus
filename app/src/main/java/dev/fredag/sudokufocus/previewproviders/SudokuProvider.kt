@@ -14,8 +14,8 @@ class SudokuCanvasParametersProvider : PreviewParameterProvider<SudokuCanvasPara
                 100.dp,
                 100.dp,
                 updateSudoku = {},
-                zones = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9"),
-                selectorType = SelectorType.Grid,
+                selectorType = SelectorType.Grid(listOf("1", "2", "3", "4", "5", "6", "7", "8", "9")),
+                true
             )
         }
 
@@ -27,6 +27,6 @@ data class SudokuCanvasParameters(
     val parentWidth: Dp,
     val parentHeight: Dp,
     val updateSudoku: (sudoku: Sudoku) -> Unit,
-    val zones: List<String>,
     val selectorType: SelectorType,
+    val showSelectorUi: Boolean,
 )

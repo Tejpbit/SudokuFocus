@@ -109,6 +109,7 @@ fun DrawScope.drawRotarySelector(
 data class CartesianCoordinate(val x: Float, val y: Float) {
     fun remove(other: Offset) = CartesianCoordinate(x - other.x, y - other.y)
     fun move(x: Float, y: Float) = CartesianCoordinate(this.x + x, this.y + y)
+    fun move(c: CartesianCoordinate) = CartesianCoordinate(this.x + c.x, this.y + c.y)
     fun toPolar() = when {
         x < 0 && y < 0 -> PolarCoordinate(sqrt(x * x + y * y), atan(y / x) + PI.toFloat())
         x < 0 -> PolarCoordinate(sqrt(x * x + y * y), atan(y / x) + PI.toFloat())
@@ -123,8 +124,14 @@ data class PolarCoordinate(val r: Float, val angle: Float) {
     fun toCartesian2() = CartesianCoordinate(r * cos(angle), r * sin(angle))
     fun newWithRadius(newRadius: Float) = PolarCoordinate(newRadius, angle)
     fun newWithAngleOffset(angleOffset: Float) = PolarCoordinate(r, angle + angleOffset)
+    fun move(p: PolarCoordinate): PolarCoordinate {
+        return this.toCartesian2().move(p.toCartesian2()).toPolar()
+    }
 
     companion object {
+        /**
+         * Creates the polar coordinates needed to move from from to to
+         */
         fun fromTwoCartesianCoordinates(
             from: CartesianCoordinate,
             to: CartesianCoordinate

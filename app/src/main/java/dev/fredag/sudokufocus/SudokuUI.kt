@@ -5,6 +5,7 @@ import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
+import androidx.compose.material.Checkbox
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -36,7 +37,11 @@ import kotlin.math.PI
 import kotlin.math.min
 
 @Composable
-fun SudokuUI(sudoku: Sudoku, list: List<String>, updateSudoku: (sudoku: Sudoku) -> Unit) {
+fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
+    var showSelectorUi by remember {
+        mutableStateOf(true)
+    }
+
     BoxWithConstraints(
         Modifier
             .fillMaxHeight()
@@ -56,20 +61,41 @@ fun SudokuUI(sudoku: Sudoku, list: List<String>, updateSudoku: (sudoku: Sudoku) 
                     }) {
                         Text(text = "Deduce guesses")
                     }
+                    Row {
+                        Text(text = "Show selector UI: ")
+                        Checkbox(
+                            checked = showSelectorUi,
+                            onCheckedChange = { showSelectorUi = it })
+                    }
+
                     if (sudoku.isSolved()) {
                         Text(text = "Solved!")
                     }
                 }
-                SudokuCanvas(
-                    SudokuCanvasParameters(
-                        sudoku,
-                        this@BoxWithConstraints.maxWidth,
-                        this@BoxWithConstraints.maxHeight,
-                        updateSudoku,
-                        list,
-                        SelectorType.Grid
+                Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Bottom) {
+                    SudokuCanvas(
+                        SudokuCanvasParameters(
+                            sudoku,
+                            this@BoxWithConstraints.maxWidth,
+                            this@BoxWithConstraints.maxHeight,
+                            updateSudoku,
+                            SelectorType.RotaryWithCenter(
+                                listOf(
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "6",
+                                    "9",
+                                    "8",
+                                    "7",
+                                    "4"
+                                ), "5"
+                            ),
+                            showSelectorUi
+                        )
                     )
-                )
+                }
+
             }
         }
     }
@@ -95,24 +121,54 @@ fun SudokuCanvas(
         parentWidth,
         parentHeight,
         updateSudoku,
-        zones,
         selectorType,
+        showSelectorUI
     ) = sudokuCanvasParameters
 
     val primaryColor = MaterialTheme.colors.primary
     val secondaryColor = MaterialTheme.colors.secondary
     val guessTextColor = MaterialTheme.colors.onBackground
 
-    val activatedCellCalculator = when (selectorType) {
-        SelectorType.Grid -> GridActivatedCellCalulator(gridSelectorSize, zones)
-        SelectorType.Rotary -> TODO()
+    val height = with(LocalDensity.current) {
+        parentHeight.toPx()
     }
 
     val width = with(LocalDensity.current) {
         parentWidth.toPx()
     }
-    val height = with(LocalDensity.current) {
-        parentHeight.toPx()
+
+    val activatedCellCalculator = when (selectorType) {
+        is SelectorType.Grid -> {
+            GridActivatedCellCalulator(gridSelectorSize, selectorType.zones)
+        }
+        is SelectorType.Rotary -> RotaryActivatedCellCelculator(selectorType.zones)
+        is SelectorType.RotaryWithCenter -> RotaryWithCenterActivatedCellCelculator(
+            500f, width / 9 / 2,
+            selectorType.zones,
+            selectorType.center
+        )
+    }
+
+    val selectorTypeWithLogic: SelectorTypeWithLogic = when (selectorType) {
+        is SelectorType.Grid ->
+            SelectorTypeWithLogic.Grid(
+                selectorType.zones,
+                GridActivatedCellCalulator(gridSelectorSize, selectorType.zones)
+            )
+        is SelectorType.Rotary -> SelectorTypeWithLogic.Rotary(
+            selectorType.zones,
+            RotaryActivatedCellCelculator(selectorType.zones)
+        )
+        is SelectorType.RotaryWithCenter -> SelectorTypeWithLogic.RotaryWithCenter(
+            selectorType.zones,
+            selectorType.center,
+            RotaryWithCenterActivatedCellCelculator(
+                500f, width / 9 / 2,
+                selectorType.zones,
+                selectorType.center
+            )
+
+        )
     }
 
     var touchDownPos: Offset? by remember {
@@ -122,8 +178,6 @@ fun SudokuCanvas(
     var pos: Offset? by remember {
         mutableStateOf(null)
     }
-
-    val radiansPerZone = (2 * PI / zones.size).toFloat()
 
     val arcDiameter = with(LocalDensity.current) {
         minOf(parentWidth.toPx(), parentHeight.toPx()) / 1.2f
@@ -141,7 +195,8 @@ fun SudokuCanvas(
 
     Canvas(modifier = Modifier
         .fillMaxWidth()
-        .height(height.dp)
+//        .width((width/10).dp)
+        .height(parentWidth)
         .pointerInteropFilter {
             if (it.action == MotionEvent.ACTION_DOWN) {
                 activatedCoord =
@@ -192,25 +247,53 @@ fun SudokuCanvas(
 
 
         drawSudokuField(sudoku, Size(width, height), primaryColor, secondaryColor, guessTextColor)
-        when (selectorType) {
-            SelectorType.Grid -> {
-                drawGridSelector(
-                    size = gridSelectorSize,
-                    selectorPos,
-                    pos
-                )
+        if (showSelectorUI) {
+            selectorPos?.let { selectorPos ->
+                when (selectorTypeWithLogic) {
+                    is SelectorTypeWithLogic.Grid -> {
+                        drawGridSelector(
+                            size = gridSelectorSize,
+                            selectorPos,
+                            pos ?: selectorPos
+                        )
+                    }
+                    is SelectorTypeWithLogic.Rotary -> drawRotarySelector(
+                        arcDiameter,
+                        selectorTypeWithLogic.zones,
+                        selectorPos,
+                        pos ?: selectorPos
+                    )
+                    is SelectorTypeWithLogic.RotaryWithCenter -> drawRotaryWithCenterSelector(
+                        selectorTypeWithLogic.zones,
+                        selectorTypeWithLogic.center,
+                        selectorPos,
+                        pos ?: selectorPos,
+                        selectorTypeWithLogic.logic
+                    )
+                }
             }
-            SelectorType.Rotary -> drawRotarySelector(arcDiameter, zones, touchDownPos, pos)
-
         }
     }
 }
 
 sealed class SelectorType {
-    object Rotary : SelectorType()
-    object Grid : SelectorType()
+    class Rotary(val zones: List<String>) : SelectorType()
+    class RotaryWithCenter(val zones: List<String>, val center: String) : SelectorType()
+    class Grid(val zones: List<String>) : SelectorType()
 }
 
+sealed class SelectorTypeWithLogic {
+    class Rotary(val zones: List<String>, logic: RotaryActivatedCellCelculator) :
+        SelectorTypeWithLogic()
+
+    class RotaryWithCenter(
+        val zones: List<String>,
+        val center: String,
+        val logic: RotaryWithCenterActivatedCellCelculator
+    ) : SelectorTypeWithLogic()
+
+    class Grid(val zones: List<String>, logic: GridActivatedCellCalulator) : SelectorTypeWithLogic()
+}
 
 fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
     drawIntoCanvas {
