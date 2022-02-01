@@ -10,7 +10,7 @@ import org.junit.Test
 class RotaryWithCenterActivatedCellCalculatorTest {
 
     private val rotaryWithCenterActivatedCellCalculator =
-        RotaryWithCenterActivatedCellCelculator(
+        RotaryWithCenterActivatedCellCalculator(
             100f,
             20f,
             listOf(

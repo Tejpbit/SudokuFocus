@@ -94,7 +94,7 @@ class RotaryActivatedCellCelculator(val zones: List<String>) : ActivatedCellCalc
 
 }
 
-class RotaryWithCenterActivatedCellCelculator(
+class RotaryWithCenterActivatedCellCalculator(
     val outerRadius: Float,
     val centerRadius: Float,
     val zones: List<String>,

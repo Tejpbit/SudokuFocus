@@ -15,7 +15,7 @@ fun DrawScope.drawRotaryWithCenterSelector(
     centerZone: String,
     touchDownPos: Offset,
     currentTouchPos: Offset,
-    selectorLogic: RotaryWithCenterActivatedCellCelculator
+    selectorLogic: RotaryWithCenterActivatedCellCalculator
 ) {
     val activatedZone = selectorLogic.calculateActivatedCell(touchDownPos, currentTouchPos)
     val diameter = selectorLogic.outerRadius

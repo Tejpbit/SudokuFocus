@@ -142,7 +142,7 @@ fun SudokuCanvas(
             GridActivatedCellCalulator(gridSelectorSize, selectorType.zones)
         }
         is SelectorType.Rotary -> RotaryActivatedCellCelculator(selectorType.zones)
-        is SelectorType.RotaryWithCenter -> RotaryWithCenterActivatedCellCelculator(
+        is SelectorType.RotaryWithCenter -> RotaryWithCenterActivatedCellCalculator(
             500f, width / 9 / 2,
             selectorType.zones,
             selectorType.center
@@ -162,7 +162,7 @@ fun SudokuCanvas(
         is SelectorType.RotaryWithCenter -> SelectorTypeWithLogic.RotaryWithCenter(
             selectorType.zones,
             selectorType.center,
-            RotaryWithCenterActivatedCellCelculator(
+            RotaryWithCenterActivatedCellCalculator(
                 500f, width / 9 / 2,
                 selectorType.zones,
                 selectorType.center
@@ -289,7 +289,7 @@ sealed class SelectorTypeWithLogic {
     class RotaryWithCenter(
         val zones: List<String>,
         val center: String,
-        val logic: RotaryWithCenterActivatedCellCelculator
+        val logic: RotaryWithCenterActivatedCellCalculator
     ) : SelectorTypeWithLogic()
 
     class Grid(val zones: List<String>, logic: GridActivatedCellCalulator) : SelectorTypeWithLogic()
