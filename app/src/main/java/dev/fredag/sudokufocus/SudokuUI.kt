@@ -3,11 +3,9 @@ package dev.fredag.sudokufocus
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
-import androidx.compose.material.Checkbox
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -33,14 +31,47 @@ import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParameters
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParametersProvider
-import kotlin.math.PI
 import kotlin.math.min
+
+val defaultRotartyWithCenterSelector = SelectorType.RotaryWithCenter(
+    listOf(
+        "1",
+        "2",
+        "3",
+        "6",
+        "9",
+        "8",
+        "7",
+        "4"
+    ), "5"
+)
+
+val defaultGridSelector = SelectorType.Grid(
+    listOf(
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+    )
+)
 
 @Composable
 fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
     var showSelectorUi by remember {
         mutableStateOf(true)
     }
+
+    var expanded by remember { mutableStateOf(false) }
+    var activeSelectorType: SelectorType by remember {
+        mutableStateOf(defaultRotartyWithCenterSelector)
+    }
+
+
 
     BoxWithConstraints(
         Modifier
@@ -72,25 +103,37 @@ fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
                         Text(text = "Solved!")
                     }
                 }
-                Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Bottom) {
+                Row {
+                    Text(
+                        text = "Selector type: ${activeSelectorType.name}",
+                        modifier = Modifier.clickable(onClick = { expanded = true })
+                    )
+
+
+                    DropdownMenu(expanded = expanded, onDismissRequest = {expanded = false}) {
+                        for (selector in listOf(
+                            defaultRotartyWithCenterSelector,
+                            defaultGridSelector
+                        ))
+                            DropdownMenuItem(onClick = {
+                                activeSelectorType = selector
+                                expanded = false
+                            }) {
+                                Text(text = selector.name)
+                            }
+                    }
+                }
+                Column(
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalArrangement = Arrangement.Bottom
+                ) {
                     SudokuCanvas(
                         SudokuCanvasParameters(
                             sudoku,
                             this@BoxWithConstraints.maxWidth,
                             this@BoxWithConstraints.maxHeight,
                             updateSudoku,
-                            SelectorType.RotaryWithCenter(
-                                listOf(
-                                    "1",
-                                    "2",
-                                    "3",
-                                    "6",
-                                    "9",
-                                    "8",
-                                    "7",
-                                    "4"
-                                ), "5"
-                            ),
+                            activeSelectorType,
                             showSelectorUi
                         )
                     )
@@ -254,7 +297,8 @@ fun SudokuCanvas(
                         drawGridSelector(
                             size = gridSelectorSize,
                             selectorPos,
-                            pos ?: selectorPos
+                            pos ?: selectorPos,
+                            selectorTypeWithLogic.logic
                         )
                     }
                     is SelectorTypeWithLogic.Rotary -> drawRotarySelector(
@@ -276,10 +320,12 @@ fun SudokuCanvas(
     }
 }
 
-sealed class SelectorType {
-    class Rotary(val zones: List<String>) : SelectorType()
-    class RotaryWithCenter(val zones: List<String>, val center: String) : SelectorType()
-    class Grid(val zones: List<String>) : SelectorType()
+sealed class SelectorType(val name: String) {
+    class Rotary(val zones: List<String>) : SelectorType("Rotary")
+    class RotaryWithCenter(val zones: List<String>, val center: String) :
+        SelectorType("RotaryWithCenter")
+
+    class Grid(val zones: List<String>) : SelectorType("Grid")
 }
 
 sealed class SelectorTypeWithLogic {
@@ -292,7 +338,8 @@ sealed class SelectorTypeWithLogic {
         val logic: RotaryWithCenterActivatedCellCalculator
     ) : SelectorTypeWithLogic()
 
-    class Grid(val zones: List<String>, logic: GridActivatedCellCalulator) : SelectorTypeWithLogic()
+    class Grid(val zones: List<String>, val logic: GridActivatedCellCalulator) :
+        SelectorTypeWithLogic()
 }
 
 fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {

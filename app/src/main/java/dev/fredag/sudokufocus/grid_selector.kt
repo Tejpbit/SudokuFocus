@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 
 
 
-fun DrawScope.drawGridSelector(size: Float, touchDownPos: Offset?, currentPos: Offset?) {
+fun DrawScope.drawGridSelector(size: Float, touchDownPos: Offset?, currentPos: Offset?, logic: GridActivatedCellCalulator) {
     if (touchDownPos == null) {
         return
     }
