@@ -9,7 +9,6 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -219,7 +218,8 @@ fun SudokuCanvas(
     var activatedCoord: Coordinate? by remember {
         mutableStateOf(null)
     }
-    val squareSize = width / 9
+    val boardWidth = min(width, height)
+    val squareSize = boardWidth / 9
 
     var selectorPos: Offset? by remember {
         mutableStateOf(null)
@@ -286,7 +286,7 @@ fun SudokuCanvas(
 
         drawSudokuField(
             sudoku,
-            Size(width, height),
+            boardWidth,
             primaryColor,
             secondaryColor,
             guessTextColor,
@@ -360,7 +360,7 @@ fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint, typeFace:
 
 fun DrawScope.drawSudokuField(
     sudoku: Sudoku,
-    size: Size,
+    boardWidth: Float,
     primaryColor: Color,
     secondaryColor: Color,
     guessTextColor: Color,
@@ -385,10 +385,8 @@ fun DrawScope.drawSudokuField(
         color = colorToInt(secondaryColor)
     }
 
-    val fieldWidth = min(size.height, size.width)
-    val cellWidth = fieldWidth / 9
+    val cellWidth = boardWidth / 9
     val cellSize = Size(cellWidth, cellWidth)
-    val cornerRad = CornerRadius(cellSize.width * 0.1f, cellSize.width * 0.1f)
 
     for (coord in Coordinate(0, 0).getCoordinatesInBlockTo(Coordinate(8, 8))) {
         val topLeft = Offset(coord.x * cellSize.width, coord.y * cellSize.height)
