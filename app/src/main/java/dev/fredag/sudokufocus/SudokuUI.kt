@@ -4,7 +4,6 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -29,13 +28,15 @@ import androidx.core.graphics.alpha
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.navigation.NavController
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParameters
 import dev.fredag.sudokufocus.previewproviders.SudokuCanvasParametersProvider
+import java.io.Serializable
 import kotlin.math.min
 
-val defaultRotartyWithCenterSelector = SelectorType.RotaryWithCenter(
+val defaultRotaryWithCenterSelector = SelectorType.RotaryWithCenter(
     listOf(
         "1",
         "2",
@@ -63,17 +64,35 @@ val defaultGridSelector = SelectorType.Grid(
 )
 
 @Composable
-fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
-    var showSelectorUi by remember {
-        mutableStateOf(true)
+fun SudokuUI(
+    navController: NavController,
+    sudoku: Sudoku,
+    settingsViewModel: SettingsViewModel,
+    updateSudoku: (sudoku: Sudoku) -> Unit
+) {
+
+    val activeSelectorType = settingsViewModel.selectorType
+    val showSelectorUi = settingsViewModel.showSelectorUi
+
+    var showHints by remember {
+        mutableStateOf(false)
     }
 
-    var expanded by remember { mutableStateOf(false) }
-    var activeSelectorType: SelectorType by remember {
-        mutableStateOf(defaultRotartyWithCenterSelector)
+    Scaffold(
+        topBar = {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                PeekButton(
+                    onTouchDown = { showHints = true },
+                    onTouchRelease = { showHints = false }
+                )
+                SettingsButton(navController)
+            }
+        }) {
+
     }
-
-
 
     BoxWithConstraints(
         Modifier
@@ -89,40 +108,8 @@ fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
         ) {
             Column() {
                 Row() {
-                    Button(onClick = {
-                        updateSudoku(sudoku.autoFillGuesses())
-                    }) {
-                        Text(text = "Deduce guesses")
-                    }
-                    Row {
-                        Text(text = "Show selector UI: ")
-                        Checkbox(
-                            checked = showSelectorUi,
-                            onCheckedChange = { showSelectorUi = it })
-                    }
-
                     if (sudoku.isSolved()) {
                         Text(text = "Solved!")
-                    }
-                }
-                Row {
-                    Text(
-                        text = "Selector type: ${activeSelectorType.name}",
-                        modifier = Modifier.clickable(onClick = { expanded = true })
-                    )
-
-
-                    DropdownMenu(expanded = expanded, onDismissRequest = {expanded = false}) {
-                        for (selector in listOf(
-                            defaultRotartyWithCenterSelector,
-                            defaultGridSelector
-                        ))
-                            DropdownMenuItem(onClick = {
-                                activeSelectorType = selector
-                                expanded = false
-                            }) {
-                                Text(text = selector.name)
-                            }
                     }
                 }
                 Column(
@@ -131,7 +118,7 @@ fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
                 ) {
                     SudokuCanvas(
                         SudokuCanvasParameters(
-                            sudoku,
+                            if (showHints) sudoku.autoFillGuesses() else sudoku,
                             this@BoxWithConstraints.maxWidth,
                             this@BoxWithConstraints.maxHeight,
                             updateSudoku,
@@ -145,6 +132,7 @@ fun SudokuUI(sudoku: Sudoku, updateSudoku: (sudoku: Sudoku) -> Unit) {
         }
     }
 }
+
 
 val numberPickerPaint = Paint().apply {
     textAlign = Paint.Align.CENTER
@@ -329,7 +317,7 @@ fun SudokuCanvas(
     }
 }
 
-sealed class SelectorType(val name: String) {
+sealed class SelectorType(val name: String) : Serializable {
     class Rotary(val zones: List<String>) : SelectorType("Rotary")
     class RotaryWithCenter(val zones: List<String>, val center: String) :
         SelectorType("RotaryWithCenter")
@@ -370,7 +358,8 @@ fun DrawScope.drawSudokuField(
     size: Size,
     primaryColor: Color,
     secondaryColor: Color,
-    guessTextColor: Color
+    guessTextColor: Color,
+    typeFace: Typeface? = null
 ) {
     val guessValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
@@ -378,15 +367,16 @@ fun DrawScope.drawSudokuField(
         color = colorToInt(guessTextColor)
     }
 
+    val submittedFontSize = 64f
     val submittedValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
-        textSize = 64f
+        textSize = submittedFontSize
         color = colorToInt(primaryColor)
     }
 
     val submittedLockedValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
-        textSize = 64f
+        textSize = submittedFontSize
         color = colorToInt(secondaryColor)
     }
 
@@ -397,11 +387,10 @@ fun DrawScope.drawSudokuField(
 
     for (coord in Coordinate(0, 0).getCoordinatesInBlockTo(Coordinate(8, 8))) {
         val topLeft = Offset(coord.x * cellSize.width, coord.y * cellSize.height)
-        drawRoundRect(
-            color = secondaryColor,
+        drawRect(
+            color = primaryColor,
             topLeft = topLeft,
             size = cellSize,
-            cornerRadius = cornerRad,
             style = Stroke(2f)
         )
 
@@ -409,8 +398,9 @@ fun DrawScope.drawSudokuField(
             drawText(
                 submitted.toString(),
                 topLeft.x + cellSize.width / 2,
-                topLeft.y + cellSize.height / 2,
-                if (sudoku.isLocked(coord)) submittedValuePaint else submittedLockedValuePaint
+                topLeft.y + cellSize.height / 2 + submittedFontSize / 2 - 10, // 10: Small adjust since a fonts height is not the height of the character
+                if (sudoku.isLocked(coord)) submittedLockedValuePaint else submittedValuePaint,
+                typeFace
             )
         }
 
@@ -419,24 +409,25 @@ fun DrawScope.drawSudokuField(
                 guessed.sorted().joinToString(" "),
                 topLeft.x + cellSize.width / 2,
                 topLeft.y + cellSize.height * 0.9f,
-                guessValuePaint
+                guessValuePaint,
+                typeFace
             )
         }
     }
 
     // Thicker 3x3 divider lines
-    for (i in listOf(3, 6)) {
+    for (i in listOf(0, 3, 6, 9)) {
         drawLine(
-            Color.Green,
+            primaryColor,
             start = Offset(0f, cellWidth * i),
             end = Offset(cellWidth * 9, cellWidth * i),
-            strokeWidth = 5f,
+            strokeWidth = 10f,
         )
         drawLine(
-            Color.Green,
+            primaryColor,
             start = Offset(cellWidth * i, 0f),
             end = Offset(cellWidth * i, cellWidth * 9),
-            strokeWidth = 5f,
+            strokeWidth = 10f,
         )
     }
 }
