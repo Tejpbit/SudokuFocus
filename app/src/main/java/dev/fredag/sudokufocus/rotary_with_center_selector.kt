@@ -148,5 +148,12 @@ fun DrawScope.drawRotaryWithCenterSelector(
         style = Stroke(3f)
     )
 
-    drawText(centerZone, touchDownPos.x, touchDownPos.y, paint = numberPickerPaint)
+    // Magic number to move the text down so it renders in the center of the circle.
+    val adjustYToCenter = 25
+    drawText(
+        centerZone,
+        touchDownPos.x,
+        touchDownPos.y + adjustYToCenter,
+        paint = numberPickerPaint
+    )
 }
