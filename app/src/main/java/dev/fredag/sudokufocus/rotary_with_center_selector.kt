@@ -1,5 +1,6 @@
 package dev.fredag.sudokufocus
 
+import android.graphics.Paint
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -15,8 +16,22 @@ fun DrawScope.drawRotaryWithCenterSelector(
     centerZone: String,
     touchDownPos: Offset,
     currentTouchPos: Offset,
-    selectorLogic: RotaryWithCenterActivatedCellCalculator
+    selectorLogic: RotaryWithCenterActivatedCellCalculator,
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
+    val textPaintInactive = Paint().apply {
+        textAlign = Paint.Align.CENTER
+        textSize = 64f
+        color = colorToInt(primaryColor)
+    }
+
+    val textPaintActive = Paint().apply {
+        textAlign = Paint.Align.CENTER
+        textSize = 64f
+        color = colorToInt(secondaryColor)
+    }
+
     val activatedZone = selectorLogic.calculateActivatedCell(touchDownPos, currentTouchPos)
     val diameter = selectorLogic.outerRadius
     val thumbDistanceFromCenter =
@@ -34,7 +49,7 @@ fun DrawScope.drawRotaryWithCenterSelector(
         if (isInsideCenterZone) centerZone.toInt() else (thumbAngle / radiansPerZone).toInt()
     // Outer Circle
     drawArc(
-        color = Color.Gray,
+        color = secondaryColor,
         startAngle = 0f,
         sweepAngle = 360f,
         useCenter = false,
@@ -48,8 +63,6 @@ fun DrawScope.drawRotaryWithCenterSelector(
     )
 
 
-
-
     for ((zoneIndex, zone) in zones.withIndex()) {
         val i = zoneIndex.toFloat()
         val startLineAngle =
@@ -60,29 +73,7 @@ fun DrawScope.drawRotaryWithCenterSelector(
         val polarCoord = PolarCoordinate(diameter / 2, startLineAngle)
         val coord = polarCoord.toCartesian()
 
-        val textPos =
-            polarCoord.newWithRadius(polarCoord.r * 0.7f)
-                .newWithAngleOffset(radiansPerZone / 2)
-                .toCartesian2().move(touchDownPos.x, touchDownPos.y)
-        drawText(
-            zone,
-            textPos.x,
-            textPos.y,
-            numberPickerPaint
-        )
-        // Lines for sectors
-        // Starts after center circle and stops at outer circle
-        drawLine(
-            Color.Green,
-            with(touchDownPos) {
-                val offsetFromCenter = CartesianCoordinate(x, y).toPolar()
-                    .move(PolarCoordinate(centerCircleDimeter / 2, startLineAngle)).toCartesian()
-                Offset(offsetFromCenter.first, offsetFromCenter.second)
-            },
-            with(touchDownPos) { Offset(x + coord.first, y + coord.second) }
-        )
 
-//        if (!isInsideCenterZone && thumbAngle < endLineAngle && startLineAngle < thumbAngle ) {
         if (activatedZone == zone) {
             println("i: $i, degreesPerZone: $radiansPerZone, mult: (${i * startLineAngle}), polar $polarCoord, coord $coord")
 
@@ -99,10 +90,10 @@ fun DrawScope.drawRotaryWithCenterSelector(
             }
             drawPath(
                 trianglePath,
-                Color.Green,
+                primaryColor,
             )
             drawArc(
-                Color.Green,
+                primaryColor,
                 startAngle = (startLineAngle / (Math.PI) * 180).toFloat(),
                 sweepAngle = (radiansPerZone / (Math.PI) * 180).toFloat(),
                 useCenter = false,
@@ -115,11 +106,36 @@ fun DrawScope.drawRotaryWithCenterSelector(
                 ),
             )
         }
+
+
+
+        val textPos =
+            polarCoord.newWithRadius(polarCoord.r * 0.7f)
+                .newWithAngleOffset(radiansPerZone / 2)
+                .toCartesian2().move(touchDownPos.x, touchDownPos.y)
+        drawText(
+            zone,
+            textPos.x,
+            textPos.y,
+            if (activatedZone == zone) textPaintActive else textPaintInactive
+        )
+        // Lines for sectors
+        // Starts after center circle and stops at outer circle
+        drawLine(
+            primaryColor,
+            with(touchDownPos) {
+                val offsetFromCenter = CartesianCoordinate(x, y).toPolar()
+                    .move(PolarCoordinate(centerCircleDimeter / 2, startLineAngle)).toCartesian()
+                Offset(offsetFromCenter.first, offsetFromCenter.second)
+            },
+            with(touchDownPos) { Offset(x + coord.first, y + coord.second) }
+        )
+
     }
 
     // Draw center
     drawArc(
-        color = if (activatedZone == centerZone) Color.Green else Color.Gray,
+        color = if (activatedZone == centerZone) primaryColor else secondaryColor,
         startAngle = 0f,
         sweepAngle = 360f,
         useCenter = false,
@@ -134,7 +150,7 @@ fun DrawScope.drawRotaryWithCenterSelector(
     )
 
     drawArc(
-        color = Color.Green,
+        color = primaryColor,
         startAngle = 0f,
         sweepAngle = 360f,
         useCenter = false,
@@ -154,6 +170,6 @@ fun DrawScope.drawRotaryWithCenterSelector(
         centerZone,
         touchDownPos.x,
         touchDownPos.y + adjustYToCenter,
-        paint = numberPickerPaint
+        paint = if (activatedZone == centerZone) textPaintActive else textPaintInactive
     )
 }

@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
@@ -28,10 +27,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.alpha
-import androidx.core.graphics.blue
-import androidx.core.graphics.green
-import androidx.core.graphics.red
 import androidx.navigation.NavController
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
@@ -181,8 +176,8 @@ fun SudokuCanvas(
     ) = sudokuCanvasParameters
 
     val primaryColor = MaterialTheme.colors.primary
+    val primaryVariantColor = MaterialTheme.colors.primaryVariant
     val secondaryColor = MaterialTheme.colors.secondary
-    val guessTextColor = MaterialTheme.colors.onBackground
 
     val height = with(LocalDensity.current) {
         parentHeight.toPx()
@@ -336,8 +331,7 @@ fun SudokuCanvas(
             sudoku,
             boardWidth,
             primaryColor,
-            secondaryColor,
-            guessTextColor,
+            primaryVariantColor,
             font
         )
         if (showSelectorUI) {
@@ -362,7 +356,9 @@ fun SudokuCanvas(
                         selectorTypeWithLogic.center,
                         selectorPos,
                         pos ?: selectorPos,
-                        selectorTypeWithLogic.logic
+                        selectorTypeWithLogic.logic,
+                        primaryColor,
+                        secondaryColor
                     )
                 }
             }
@@ -410,14 +406,13 @@ fun DrawScope.drawSudokuField(
     sudoku: Sudoku,
     boardWidth: Float,
     primaryColor: Color,
-    secondaryColor: Color,
-    guessTextColor: Color,
+    primaryVariantColor: Color,
     typeFace: Typeface? = null
 ) {
     val guessValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
         textSize = 24f
-        color = colorToInt(guessTextColor)
+        color = colorToInt(primaryColor)
     }
 
     val submittedFontSize = 64f
@@ -430,7 +425,7 @@ fun DrawScope.drawSudokuField(
     val submittedLockedValuePaint = Paint().apply {
         textAlign = Paint.Align.CENTER
         textSize = submittedFontSize
-        color = colorToInt(secondaryColor)
+        color = colorToInt(primaryVariantColor)
     }
 
     val cellWidth = boardWidth / 9
@@ -483,9 +478,3 @@ fun DrawScope.drawSudokuField(
     }
 }
 
-private fun colorToInt(color: Color) = android.graphics.Color.argb(
-    color.toArgb().alpha,
-    color.toArgb().red,
-    color.toArgb().green,
-    color.toArgb().blue
-)
