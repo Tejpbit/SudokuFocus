@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color.Companion.White
 private val DarkColorPalette = darkColors(
     primary = White,
     primaryVariant = LightGray,
-    secondary = DarkGray
+    secondary = Gray
 )
 
 private val LightColorPalette = lightColors(
