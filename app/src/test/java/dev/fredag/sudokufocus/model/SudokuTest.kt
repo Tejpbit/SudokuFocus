@@ -19,7 +19,7 @@ class SudokuTest {
 
     @Test
     fun isSolvedWorks() {
-        val s = Sudoku.generateSolvedDaily()
+        val s = Sudoku.generateFromSeed(SudokuSeed.day())
         assertTrue(s.isSolved())
     }
 }

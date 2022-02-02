@@ -3,6 +3,7 @@ package dev.fredag.sudokufocus
 import androidx.compose.ui.geometry.Offset
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
+import dev.fredag.sudokufocus.model.SudokuSeed
 import org.junit.Assert.assertEquals
 
 import org.junit.Test
@@ -24,7 +25,7 @@ class RotaryWithCenterActivatedCellCalculatorTest {
                 "4"
             ), "5"
         )
-    private var sudoku = Sudoku.generateFromSeed(123)
+    private var sudoku = Sudoku.generateFromSeed(SudokuSeed(123))
     private val activatedCoord = Coordinate(4, 0)
 
     @Test

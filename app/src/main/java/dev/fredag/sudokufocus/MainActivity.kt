@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun FieldActionSelector() {
     var sudoku by remember {
-        mutableStateOf(Sudoku.generateDaily())
+        mutableStateOf(Sudoku.generateFromSeed(seed))
     }
     SudokuUI(
         sudoku,

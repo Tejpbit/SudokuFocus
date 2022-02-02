@@ -3,6 +3,7 @@ package dev.fredag.sudokufocus
 import androidx.compose.ui.geometry.Offset
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
+import dev.fredag.sudokufocus.model.SudokuSeed
 import org.junit.Assert.*
 import org.junit.Before
 
@@ -12,7 +13,7 @@ class GridActivatedCellCalulatorTest {
 
     private val gridActivatedCellCalculator =
         GridActivatedCellCalulator(500f, listOf("1", "2", "3", "4", "5", "6", "7", "8", "9"))
-    private var sudoku = Sudoku.generateFromSeed(123)
+    private var sudoku = Sudoku.generateFromSeed(SudokuSeed(123))
     private val activatedCoord = Coordinate(4, 0)
 
     @Test

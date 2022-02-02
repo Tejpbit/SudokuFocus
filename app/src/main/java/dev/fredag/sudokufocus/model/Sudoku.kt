@@ -1,6 +1,6 @@
 package dev.fredag.sudokufocus.model
 
-import java.time.LocalDateTime
+import java.time.LocalDate
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -113,22 +113,28 @@ data class Sudoku(
     }
 
     companion object {
-        fun generateDaily(): Sudoku {
-            val now = LocalDateTime.now()
-            return generateFromSeed("${now.year}${now.dayOfYear}".toInt())
+
+        fun generateFromSeed(seed: SudokuSeed): Sudoku {
+            return SudokuGenerator.generate(Random(seed.value))
         }
 
-        fun generateSolvedDaily(): Sudoku {
-            val now = LocalDateTime.now()
-            return generateSolvedFromSeed("${now.year}${now.dayOfYear}".toInt())
+        fun generateSolvedFromSeed(seed: SudokuSeed): Sudoku {
+            return SudokuGenerator.generate(Random(seed.value), true)
+        }
+    }
+}
+
+@JvmInline
+value class SudokuSeed(val value: Int) {
+
+    companion object {
+
+        fun random(): SudokuSeed {
+            return SudokuSeed(Random.nextInt())
         }
 
-        fun generateFromSeed(seed: Int): Sudoku {
-            return SudokuGenerator.generate(Random(seed))
-        }
-
-        fun generateSolvedFromSeed(seed: Int): Sudoku {
-            return SudokuGenerator.generate(Random(seed), true)
+        fun day(date: LocalDate = LocalDate.now()): SudokuSeed {
+            return SudokuSeed("${date.year}${date.dayOfYear}".toInt())
         }
     }
 }
