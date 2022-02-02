@@ -20,9 +20,11 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ fun SudokuUI(
     settingsViewModel: SettingsViewModel,
     updateSudoku: (sudoku: Sudoku) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
 
     val activeSelectorType = settingsViewModel.selectorType
     val showSelectorUi = settingsViewModel.showSelectorUi
@@ -94,8 +97,14 @@ fun SudokuUI(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 PeekButton(
-                    onTouchDown = { showHints = true },
-                    onTouchRelease = { showHints = false }
+                    onTouchDown = {
+                        showHints = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onTouchRelease = {
+                        showHints = false
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
                 )
                 SettingsButton(navController)
             }
@@ -195,7 +204,7 @@ fun SudokuCanvas(
         )
     }
 
-    val selectorTypeWithLogic: SelectorTypeWithLogic = when (selectorType) {
+    val selectorTypeWithLogic: SelectorTypeWithLogic<*> = when (selectorType) {
         is SelectorType.Grid ->
             SelectorTypeWithLogic.Grid(
                 selectorType.zones,
@@ -217,6 +226,7 @@ fun SudokuCanvas(
         )
     }
 
+
     var touchDownPos: Offset? by remember {
         mutableStateOf(null)
     }
@@ -237,6 +247,17 @@ fun SudokuCanvas(
 
     var selectorPos: Offset? by remember {
         mutableStateOf(null)
+    }
+
+    var activatedCellFromSelector: String? by remember {
+        mutableStateOf(null)
+    }
+
+    val haptic = LocalHapticFeedback.current
+    LaunchedEffect(key1 = activatedCellFromSelector) {
+        if (activatedCellFromSelector != null) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
     }
 
     val font = LocalContext.current.resources.getFont(R.font.amarante_regular)
@@ -279,6 +300,13 @@ fun SudokuCanvas(
                     )
                     thumbAngle =
                         if (thumbAngle < 0) (thumbAngle + Math.PI * 2).toFloat() else thumbAngle
+
+                    selectorPos?.let { selectorPos ->
+                        pos?.let { pos ->
+                            activatedCellFromSelector =
+                                selectorTypeWithLogic.logic.calculateActivatedCell(selectorPos, pos)
+                        }
+                    }
                 }
                 MotionEvent.ACTION_UP -> {
                     selectorPos?.let { selectorPos ->
@@ -297,14 +325,13 @@ fun SudokuCanvas(
                     }
                     selectorPos = null
                     pos = null
+                    activatedCellFromSelector = null
                 }
             }
             true
         }
 
     ) {
-
-
         drawSudokuField(
             sudoku,
             boardWidth,
@@ -351,18 +378,18 @@ sealed class SelectorType(val name: String) : Serializable {
     class Grid(val zones: List<String>) : SelectorType("Grid")
 }
 
-sealed class SelectorTypeWithLogic {
+sealed class SelectorTypeWithLogic<T: ActivatedCellCalculator>(val logic: T) {
     class Rotary(val zones: List<String>, logic: RotaryActivatedCellCelculator) :
-        SelectorTypeWithLogic()
+        SelectorTypeWithLogic<RotaryActivatedCellCelculator>(logic)
 
     class RotaryWithCenter(
         val zones: List<String>,
         val center: String,
-        val logic: RotaryWithCenterActivatedCellCalculator
-    ) : SelectorTypeWithLogic()
+        logic: RotaryWithCenterActivatedCellCalculator
+    ) : SelectorTypeWithLogic<RotaryWithCenterActivatedCellCalculator>(logic)
 
-    class Grid(val zones: List<String>, val logic: GridActivatedCellCalulator) :
-        SelectorTypeWithLogic()
+    class Grid(val zones: List<String>, logic: GridActivatedCellCalulator) :
+        SelectorTypeWithLogic<GridActivatedCellCalulator>(logic)
 }
 
 fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint, typeFace: Typeface? = null) {
