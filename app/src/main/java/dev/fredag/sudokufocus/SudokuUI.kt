@@ -1,6 +1,7 @@
 package dev.fredag.sudokufocus
 
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -235,7 +237,7 @@ fun SudokuCanvas(
         mutableStateOf(null)
     }
 
-
+    val font = LocalContext.current.resources.getFont(R.font.amarante_regular)
     Canvas(modifier = Modifier
         .fillMaxWidth()
 //        .width((width/10).dp)
@@ -289,7 +291,14 @@ fun SudokuCanvas(
     ) {
 
 
-        drawSudokuField(sudoku, Size(width, height), primaryColor, secondaryColor, guessTextColor)
+        drawSudokuField(
+            sudoku,
+            Size(width, height),
+            primaryColor,
+            secondaryColor,
+            guessTextColor,
+            font
+        )
         if (showSelectorUI) {
             selectorPos?.let { selectorPos ->
                 when (selectorTypeWithLogic) {
@@ -342,7 +351,10 @@ sealed class SelectorTypeWithLogic {
         SelectorTypeWithLogic()
 }
 
-fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint) {
+fun DrawScope.drawText(text: String, x: Float, y: Float, paint: Paint, typeFace: Typeface? = null) {
+    if (typeFace != null) {
+        paint.typeface = typeFace
+    }
     drawIntoCanvas {
         it.nativeCanvas.drawText(
             text,
