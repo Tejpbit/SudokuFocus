@@ -112,6 +112,14 @@ data class Sudoku(
         return true
     }
 
+    fun isValidCoordinate(coordinate: Coordinate): Boolean {
+        return coordinate.x in 0..8 && coordinate.y in 0..8
+    }
+
+    fun isSubmittable(coordinate: Coordinate): Boolean {
+        return this.isValidCoordinate(coordinate) && !this.isLocked(coordinate)
+    }
+
     companion object {
 
         fun generateFromSeed(seed: SudokuSeed): Sudoku {

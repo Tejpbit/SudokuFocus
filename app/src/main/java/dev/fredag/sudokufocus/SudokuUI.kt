@@ -232,8 +232,13 @@ fun SudokuCanvas(
         .height(parentWidth)
         .pointerInteropFilter {
             if (it.action == MotionEvent.ACTION_DOWN) {
-                activatedCoord =
-                    Coordinate((it.x / squareSize).toInt(), (it.y / squareSize).toInt())
+                activatedCoord = Coordinate(
+                    (it.x / squareSize).toInt(),
+                    (it.y / squareSize).toInt()
+                ).let { activatedCoord ->
+                    if (sudoku.isSubmittable(activatedCoord)) activatedCoord else null
+                }
+
                 selectorPos = activatedCoord?.let { activatedCoord ->
                     Offset(
                         activatedCoord.x * squareSize + squareSize / 2,
