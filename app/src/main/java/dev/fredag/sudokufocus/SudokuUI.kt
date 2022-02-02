@@ -4,6 +4,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -15,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -77,6 +80,13 @@ fun SudokuUI(
         mutableStateOf(false)
     }
 
+
+    var scale by remember { mutableStateOf(0.9f) }
+    var scroll by remember { mutableStateOf(Offset.Zero) }
+    val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+        scale *= zoomChange
+        scroll += offsetChange
+    }
     Scaffold(
         topBar = {
             Row(
@@ -90,43 +100,45 @@ fun SudokuUI(
                 SettingsButton(navController)
             }
         }) {
-
-    }
-
-    BoxWithConstraints(
-        Modifier
-            .fillMaxHeight()
-            .width(400.dp)
-    ) {
-        Box(
+        BoxWithConstraints(
             Modifier
-                .size(
-                    width = maxWidth,
-                    height = maxHeight,
-                )
+                .fillMaxHeight()
+                .width(400.dp)
         ) {
-            Column() {
-                Row() {
-                    if (sudoku.isSolved()) {
-                        Text(text = "Solved!")
+            Box(
+                Modifier
+                    .size(
+                        width = maxWidth,
+                        height = maxHeight,
+                    )
+            ) {
+                Column() {
+                    Row() {
+                        if (sudoku.isSolved()) {
+                            Text(text = "Solved!")
+                        }
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .transformable(state = state),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        SudokuCanvas(
+                            SudokuCanvasParameters(
+                                if (showHints) sudoku.autoFillGuesses() else sudoku,
+                                this@BoxWithConstraints.maxWidth,
+                                this@BoxWithConstraints.maxHeight,
+                                updateSudoku,
+                                activeSelectorType,
+                                showSelectorUi,
+                                scale,
+                                scroll,
+                            ),
+
+                            )
                     }
                 }
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    verticalArrangement = Arrangement.Bottom
-                ) {
-                    SudokuCanvas(
-                        SudokuCanvasParameters(
-                            if (showHints) sudoku.autoFillGuesses() else sudoku,
-                            this@BoxWithConstraints.maxWidth,
-                            this@BoxWithConstraints.maxHeight,
-                            updateSudoku,
-                            activeSelectorType,
-                            showSelectorUi
-                        )
-                    )
-                }
-
             }
         }
     }
@@ -154,7 +166,9 @@ fun SudokuCanvas(
         parentHeight,
         updateSudoku,
         selectorType,
-        showSelectorUI
+        showSelectorUI,
+        scale,
+        scroll
     ) = sudokuCanvasParameters
 
     val primaryColor = MaterialTheme.colors.primary
@@ -228,13 +242,20 @@ fun SudokuCanvas(
     val font = LocalContext.current.resources.getFont(R.font.amarante_regular)
     Canvas(modifier = Modifier
         .fillMaxWidth()
-//        .width((width/10).dp)
+        .graphicsLayer(
+            scaleX = scale,
+            scaleY = scale,
+            translationX = scroll.x,
+            translationY = scroll.y
+        )
         .height(parentWidth)
         .pointerInteropFilter {
             if (it.action == MotionEvent.ACTION_DOWN) {
+                val x = it.x / scale
+                val y = it.y / scale
                 activatedCoord = Coordinate(
-                    (it.x / squareSize).toInt(),
-                    (it.y / squareSize).toInt()
+                    (x / squareSize).toInt(),
+                    (y / squareSize).toInt()
                 ).let { activatedCoord ->
                     if (sudoku.isSubmittable(activatedCoord)) activatedCoord else null
                 }
@@ -250,7 +271,7 @@ fun SudokuCanvas(
 
             when (it.action) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                    pos = Offset(it.x, it.y)
+                    pos = Offset(it.x / scale, it.y / scale)
 
                     var (thumbRad, thumbAngle) = PolarCoordinate.fromTwoCartesianCoordinates(
                         CartesianCoordinate(touchDownPos?.x ?: 0f, touchDownPos?.y ?: 0f),

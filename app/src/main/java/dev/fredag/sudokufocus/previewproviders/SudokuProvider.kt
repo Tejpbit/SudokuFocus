@@ -1,5 +1,6 @@
 package dev.fredag.sudokufocus.previewproviders
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,4 +31,6 @@ data class SudokuCanvasParameters(
     val updateSudoku: (sudoku: Sudoku) -> Unit,
     val selectorType: SelectorType,
     val showSelectorUi: Boolean,
+    val scale: Float = 1f,
+    val scroll: Offset = Offset(0f, 0f),
 )
