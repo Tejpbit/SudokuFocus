@@ -22,9 +22,10 @@ import androidx.navigation.NavController
 private fun FloatingActionButton(
     @DrawableRes
     icon: Int,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onTouchDown: () -> Unit = {},
-    onTouchRelease: () -> Unit = {}
+    onTouchRelease: () -> Unit = {},
 ) {
     Image(
         painter = painterResource(id = icon),
@@ -42,27 +43,31 @@ private fun FloatingActionButton(
                 true
             }
             .border(2.dp, MaterialTheme.colors.onBackground, CircleShape)
-
             .padding(10.dp)
-
+            .then(modifier)
     )
 }
 
 
 @Composable
-fun SettingsButton(navController: NavController) {
-    FloatingActionButton(if (MaterialTheme.colors.isLight) R.drawable.ic_cog_black else R.drawable.ic_cog_white) {
+fun SettingsButton(navController: NavController, modifier: Modifier = Modifier) {
+    FloatingActionButton(
+        if (MaterialTheme.colors.isLight) R.drawable.ic_cog_black else R.drawable.ic_cog_white,
+        modifier = modifier,
+    ) {
         navController.navigate(
             "settings"
         )
     }
+
 }
 
 @Composable
-fun PeekButton(onTouchDown: () -> Unit, onTouchRelease: () -> Unit) {
+fun PeekButton(onTouchDown: () -> Unit, onTouchRelease: () -> Unit, modifier: Modifier = Modifier) {
     FloatingActionButton(
         if (MaterialTheme.colors.isLight) R.drawable.ic_eye_black else R.drawable.ic_eye_white,
+        modifier = modifier,
         onTouchDown = onTouchDown,
-        onTouchRelease = onTouchRelease
+        onTouchRelease = onTouchRelease,
     )
 }

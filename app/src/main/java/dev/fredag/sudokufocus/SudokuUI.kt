@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -26,7 +27,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import dev.fredag.sudokufocus.model.Coordinate
 import dev.fredag.sudokufocus.model.Sudoku
@@ -85,66 +85,51 @@ fun SudokuUI(
         scale *= zoomChange
         scroll += offsetChange
     }
-    Scaffold(
-        topBar = {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                PeekButton(
-                    onTouchDown = {
-                        showHints = true
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    },
-                    onTouchRelease = {
-                        showHints = false
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    }
-                )
-                SettingsButton(navController)
-            }
-        }) {
-        BoxWithConstraints(
-            Modifier
-                .fillMaxHeight()
-                .width(400.dp)
-        ) {
-            Box(
-                Modifier
-                    .size(
-                        width = maxWidth,
-                        height = maxHeight,
-                    )
-            ) {
-                Column() {
-                    Row() {
-                        if (sudoku.isSolved()) {
-                            Text(text = "Solved!")
-                        }
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .transformable(state = state),
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        SudokuCanvas(
-                            SudokuCanvasParameters(
-                                if (showHints) sudoku.autoFillGuesses() else sudoku,
-                                this@BoxWithConstraints.maxWidth,
-                                this@BoxWithConstraints.maxHeight,
-                                updateSudoku,
-                                activeSelectorType,
-                                showSelectorUi,
-                                scale,
-                                scroll,
-                            ),
+    BoxWithConstraints(
+        Modifier
+            .fillMaxHeight()
+            .fillMaxWidth()
+    ) {
 
-                            )
-                    }
+        Column() {
+            Row() {
+                if (sudoku.isSolved()) {
+                    Text(text = "Solved!")
                 }
             }
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .transformable(state = state),
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                SudokuCanvas(
+                    SudokuCanvasParameters(
+                        if (showHints) sudoku.autoFillGuesses() else sudoku,
+                        this@BoxWithConstraints.maxWidth,
+                        this@BoxWithConstraints.maxHeight,
+                        updateSudoku,
+                        activeSelectorType,
+                        showSelectorUi,
+                        scale,
+                        scroll,
+                    ),
+
+                    )
+            }
         }
+        SettingsButton(navController, modifier = Modifier.align(Alignment.TopEnd))
+        PeekButton(
+            modifier = Modifier.align(Alignment.TopStart),
+            onTouchDown = {
+                showHints = true
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            },
+            onTouchRelease = {
+                showHints = false
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+        )
     }
 }
 
@@ -299,7 +284,10 @@ fun SudokuCanvas(
                     selectorPos?.let { selectorPos ->
                         pos?.let { pos ->
                             activatedCellFromSelector =
-                                selectorTypeWithLogic.logic.calculateActivatedCell(selectorPos, pos)
+                                selectorTypeWithLogic.logic.calculateActivatedCell(
+                                    selectorPos,
+                                    pos
+                                )
                         }
                     }
                 }
