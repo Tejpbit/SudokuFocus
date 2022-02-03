@@ -31,7 +31,6 @@ private fun FloatingActionButton(
         painter = painterResource(id = icon),
         contentDescription = null,
         modifier = Modifier
-
             .padding(10.dp)
             .clip(CircleShape)
             .clickable { onClick() }
