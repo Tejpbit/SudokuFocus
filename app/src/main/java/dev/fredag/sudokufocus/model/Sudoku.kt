@@ -90,7 +90,7 @@ data class Sudoku(
                     submittedGrid.getAt(it)
                 }
 
-            val upperLeftOfSquare = Coordinate((i % 3)*3, (i / 3)*3)
+            val upperLeftOfSquare = Coordinate((i % 3) * 3, (i / 3) * 3)
             val coordinatesInBlockTo2 =
                 upperLeftOfSquare.getCoordinatesInBlockTo(upperLeftOfSquare.move(2, 2))
             val numbersIn3by3 =
@@ -122,27 +122,100 @@ data class Sudoku(
 
     companion object {
 
-        fun generateFromSeed(seed: SudokuSeed): Sudoku {
+        fun generateFromSeed(seed: SudokuSource.SudokuSeed): Sudoku {
             return SudokuGenerator.generate(Random(seed.value))
         }
 
-        fun generateSolvedFromSeed(seed: SudokuSeed): Sudoku {
-            return SudokuGenerator.generate(Random(seed.value), true)
+//        fun generateSolvedFromSeed(seed: SudokuSource.SudokuSeed): Sudoku {
+//            return SudokuGenerator.generate(Random(seed.value), true)
+//        }
+
+        fun parse(str: String): Sudoku? {
+            val parts = str.split(";")
+            var grid: Grid<Int> = Grid()
+
+            if (parts.size != 2 || (parts[0].length != parts[1].length) || parts[0].length != 81) {
+                return null
+            }
+
+            for (char in parts[0]) {
+                for (y in 0..8) {
+                    for (x in 0..8) {
+                        if (char.isDigit()) {
+                            grid = grid.write(Coordinate(x, y), char.digitToInt())
+                        }
+                    }
+                }
+            }
+
+            return Sudoku(grid, grid.getOccupiedCoordinates(), Grid())
+        }
+
+        fun from(sudokuSource: SudokuSource): Sudoku {
+            return when (sudokuSource) {
+                is SudokuSource.Parsed -> sudokuSource.sudoku
+                is SudokuSource.SudokuSeed -> generateFromSeed(sudokuSource)
+                is SudokuSource.Unparsed -> TODO()
+                is SudokuSource.ValidUnparsed -> sudokuSource.parse()
+            }
         }
     }
 }
 
-@JvmInline
-value class SudokuSeed(val value: Int) {
+sealed class SudokuSource {
+    class SudokuSeed(val value: Int) : SudokuSource() {
+        companion object {
 
-    companion object {
+            fun random(): SudokuSeed {
+                return SudokuSeed(Random.nextInt())
+            }
 
-        fun random(): SudokuSeed {
-            return SudokuSeed(Random.nextInt())
+            fun day(date: LocalDate = LocalDate.now()): SudokuSeed {
+                return SudokuSeed("${date.year}${date.dayOfYear}".toInt())
+            }
         }
+    }
 
-        fun day(date: LocalDate = LocalDate.now()): SudokuSeed {
-            return SudokuSeed("${date.year}${date.dayOfYear}".toInt())
+    class Parsed(val sudoku: Sudoku) : SudokuSource()
+
+    class Unparsed(val string: String) : SudokuSource() {
+        fun validate(): ValidUnparsed? {
+            val parts = string.split(";")
+
+            if ((parts.size != 2 || (parts[0].length != parts[1].length) || parts[0].length != 81)
+
+            ) {
+                return null
+            }
+
+            return if (parts[0].all { c -> c.isDigit() || c == '.' } &&
+                parts[1].all { c -> c.isDigit() || c == '.' }) {
+                ValidUnparsed(string)
+
+            } else {
+                null
+            }
+
+        }
+    }
+
+    class ValidUnparsed internal constructor(val string: String) : SudokuSource() {
+        fun parse(): Sudoku {
+            val parts = string.split(";")
+            var grid: Grid<Int> = Grid()
+
+            val chars = parts[0].iterator()
+
+            for (y in 0..8) {
+                for (x in 0..8) {
+                    val char = chars.next()
+                    if (char.isDigit()) {
+                        grid = grid.write(Coordinate(x, y), char.digitToInt())
+                    }
+                }
+            }
+
+            return Sudoku(grid, grid.getOccupiedCoordinates(), Grid())
         }
     }
 }

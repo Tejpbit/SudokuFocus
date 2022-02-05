@@ -14,22 +14,19 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import dev.fredag.sudokufocus.model.Sudoku
-import dev.fredag.sudokufocus.model.SudokuSeed
 import dev.fredag.sudokufocus.ui.theme.SudokuFocusTheme
 import java.time.LocalDate
 import androidx.compose.foundation.border
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.*
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import dev.fredag.sudokufocus.Routes.campaign
@@ -70,9 +67,8 @@ object Routes {
     const val campaign = "campaign"
     const val settings = "settings"
     const val gameSeed = "game/{seed}"
-    const val gameCampaign = "game/sudoku/{}"
+    const val gameCampaign = "game/campaign/{index}"
 }
-
 
 @Composable
 fun Router(navController: NavHostController) {
@@ -82,7 +78,14 @@ fun Router(navController: NavHostController) {
         }
 
         composable(home) { Home(navController) }
-        composable(campaign) { Campaign(navController, viewModel()) }
+        composable(campaign) {
+            Campaign(
+                navController, viewModelAtRoute(
+                    navController,
+                    route = root
+                )
+            )
+        }
         composable(settings) {
             Settings(viewModelAtRoute(navController, root))
         }
@@ -100,10 +103,12 @@ fun Router(navController: NavHostController) {
         }
         composable(
             gameCampaign,
-            arguments = listOf(navArgument("seed") { type = NavType.IntType })
+            arguments = listOf(navArgument("index") { type = NavType.IntType })
         ) { backStackEntry ->
             backStackEntry.arguments?.let {
-                SavedSudoku(navController, viewModel(), SudokuSource.SudokuSeed(it.getInt("seed")))
+                val vm = viewModelAtRoute<SudokuRepoViewModel>(navController, root)
+                val s by vm.campaignSudokos.collectAsState()
+                SavedSudoku(navController, viewModel(), s[it.getInt("index")])
             } ?: Text(text = "Something went wrong")
         }
     }
@@ -111,7 +116,10 @@ fun Router(navController: NavHostController) {
 }
 
 @Composable
-inline fun <reified T : ViewModel> viewModelAtRoute(navController: NavController, route: String): T {
+inline fun <reified T : ViewModel> viewModelAtRoute(
+    navController: NavController,
+    route: String
+): T {
     val parentEntry = remember {
         navController.getBackStackEntry(route)
     }
@@ -136,10 +144,13 @@ fun Home(navController: NavController) {
         ) {
             MenuItem(
                 text = "Quick Game"
-            ) { navController.navigate("game/${SudokuSeed.random().value}") }
+            ) { navController.navigate("game/${SudokuSource.SudokuSeed.random().value}") }
             MenuItem(
                 text = "Daily challenge"
-            ) { navController.navigate("game/${SudokuSeed.day(LocalDate.now()).value}") }
+            ) { navController.navigate("game/${SudokuSource.SudokuSeed.day(LocalDate.now()).value}") }
+            MenuItem(
+                text = "Campaign"
+            ) { navController.navigate("campaign") }
             MenuItem(text = "Settings") { navController.navigate("settings") }
         }
 
