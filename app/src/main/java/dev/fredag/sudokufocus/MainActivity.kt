@@ -32,6 +32,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
+import dev.fredag.sudokufocus.Routes.campaign
+import dev.fredag.sudokufocus.Routes.gameCampaign
+import dev.fredag.sudokufocus.Routes.gameSeed
+import dev.fredag.sudokufocus.Routes.home
+import dev.fredag.sudokufocus.Routes.root
+import dev.fredag.sudokufocus.Routes.settings
+import dev.fredag.sudokufocus.Routes.splash_screen
+import dev.fredag.sudokufocus.model.SudokuSource
 
 @HiltAndroidApp
 class Application : Application()
@@ -55,28 +63,61 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+object Routes {
+    const val root = "root"
+    const val home = "home"
+    const val splash_screen = "splash_screen"
+    const val campaign = "campaign"
+    const val settings = "settings"
+    const val gameSeed = "game/{seed}"
+    const val gameCampaign = "game/sudoku/{}"
+}
+
+
 @Composable
 fun Router(navController: NavHostController) {
-    val viewModel = hiltViewModel<SettingsViewModel>()
-    NavHost(navController = navController, startDestination = "splash_screen") {
-        composable("splash_screen") {
+    val builder: NavGraphBuilder.() -> Unit = {
+        composable(splash_screen) {
             SplashScreen(navController = navController)
         }
 
-        composable("home") { Home(navController) }
-        composable("settings") {
-
-            Settings(viewModel)
+        composable(home) { Home(navController) }
+        composable(campaign) { Campaign(navController, viewModel()) }
+        composable(settings) {
+            Settings(viewModelAtRoute(navController, root))
         }
         composable(
-            "game/{seed}",
+            gameSeed,
             arguments = listOf(navArgument("seed") { type = NavType.IntType })
         ) { backStackEntry ->
             backStackEntry.arguments?.let {
-                SavedSudoku(navController, viewModel, SudokuSeed(it.getInt("seed")))
+                SavedSudoku(
+                    navController,
+                    viewModelAtRoute(navController, root),
+                    SudokuSource.SudokuSeed(it.getInt("seed"))
+                )
+            } ?: Text(text = "Something went wrong")
+        }
+        composable(
+            gameCampaign,
+            arguments = listOf(navArgument("seed") { type = NavType.IntType })
+        ) { backStackEntry ->
+            backStackEntry.arguments?.let {
+                SavedSudoku(navController, viewModel(), SudokuSource.SudokuSeed(it.getInt("seed")))
             } ?: Text(text = "Something went wrong")
         }
     }
+    NavHost(navController = navController, startDestination = home, route = root, builder = builder)
+}
+
+@Composable
+inline fun <reified T : ViewModel> viewModelAtRoute(navController: NavController, route: String): T {
+    val parentEntry = remember {
+        navController.getBackStackEntry(route)
+    }
+    return hiltViewModel(
+        parentEntry
+    )
 }
 
 @Composable
@@ -132,10 +173,10 @@ fun MenuItem(text: String, onClick: () -> Unit) {
 fun SavedSudoku(
     navController: NavController,
     settingsViewModel: SettingsViewModel,
-    seed: SudokuSeed
+    sudokuSource: SudokuSource
 ) {
     var sudoku by remember {
-        mutableStateOf(Sudoku.generateFromSeed(seed))
+        mutableStateOf(Sudoku.from(sudokuSource))
     }
     SudokuUI(
         navController,
