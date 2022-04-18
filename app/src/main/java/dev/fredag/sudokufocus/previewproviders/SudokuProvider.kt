@@ -6,13 +6,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.fredag.sudokufocus.SelectorType
 import dev.fredag.sudokufocus.model.Sudoku
-import dev.fredag.sudokufocus.model.SudokuSeed
+import dev.fredag.sudokufocus.model.SudokuSource
 
 class SudokuCanvasParametersProvider : PreviewParameterProvider<SudokuCanvasParameters> {
     override val values: Sequence<SudokuCanvasParameters>
         get() = sequence {
             SudokuCanvasParameters(
-                Sudoku.generateFromSeed(SudokuSeed(123)),
+                Sudoku.generateFromSeed(SudokuSource.SudokuSeed(123)),
                 100.dp,
                 100.dp,
                 updateSudoku = {},

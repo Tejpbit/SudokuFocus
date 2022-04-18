@@ -1,10 +1,16 @@
 package dev.fredag.sudokufocus.model
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Serializer
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import java.time.LocalDate
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
+@Serializable
 data class Sudoku(
     private val submittedGrid: Grid<Int>,
     private val lockedCoordinates: Set<Coordinate>,
@@ -76,6 +82,10 @@ data class Sudoku(
         return list.size == 9 && list.size == list.toSet().size
     }
 
+    fun isUntouched() =
+        guessGrid.isEmpty() && this.submittedGrid.getOccupiedCoordinates() == this.lockedCoordinates
+
+
     fun isSolved(): Boolean {
         for (i in 0..8) {
             val coordinatesInBlockTo = Coordinate(0, i).getCoordinatesInBlockTo(Coordinate(8, i))
@@ -126,10 +136,6 @@ data class Sudoku(
             return SudokuGenerator.generate(Random(seed.value))
         }
 
-//        fun generateSolvedFromSeed(seed: SudokuSource.SudokuSeed): Sudoku {
-//            return SudokuGenerator.generate(Random(seed.value), true)
-//        }
-
         fun parse(str: String): Sudoku? {
             val parts = str.split(";")
             var grid: Grid<Int> = Grid()
@@ -157,12 +163,21 @@ data class Sudoku(
                 is SudokuSource.SudokuSeed -> generateFromSeed(sudokuSource)
                 is SudokuSource.Unparsed -> TODO()
                 is SudokuSource.ValidUnparsed -> sudokuSource.parse()
+                is SudokuSource.Daily -> {
+                    val date = sudokuSource.date
+                    val dateSeed = date.year * 1000 +
+                            date.month.value * 10 +
+                            date.dayOfMonth
+                    generateFromSeed(SudokuSource.SudokuSeed(dateSeed))
+                }
             }
         }
     }
 }
 
+@Serializable
 sealed class SudokuSource {
+    @Serializable
     class SudokuSeed(val value: Int) : SudokuSource() {
         companion object {
 
@@ -176,15 +191,19 @@ sealed class SudokuSource {
         }
     }
 
+    @Serializable
+    class Daily(val date: @Serializable(with = LocalDateSerializer::class) LocalDate) :
+        SudokuSource()
+
+    @Serializable
     class Parsed(val sudoku: Sudoku) : SudokuSource()
 
+    @Serializable
     class Unparsed(val string: String) : SudokuSource() {
         fun validate(): ValidUnparsed? {
             val parts = string.split(";")
 
-            if ((parts.size != 2 || (parts[0].length != parts[1].length) || parts[0].length != 81)
-
-            ) {
+            if ((parts.size != 2 || (parts[0].length != parts[1].length) || parts[0].length != 81)) {
                 return null
             }
 
@@ -199,6 +218,7 @@ sealed class SudokuSource {
         }
     }
 
+    @Serializable
     class ValidUnparsed internal constructor(val string: String) : SudokuSource() {
         fun parse(): Sudoku {
             val parts = string.split(";")
@@ -220,8 +240,20 @@ sealed class SudokuSource {
     }
 }
 
+@Serializer(forClass = LocalDate::class)
+object LocalDateSerializer : KSerializer<LocalDate> {
+    override fun serialize(encoder: Encoder, value: LocalDate) {
+        encoder.encodeString(value.toString())
+    }
+
+    override fun deserialize(decoder: Decoder): LocalDate {
+        return LocalDate.parse(decoder.decodeString())
+    }
+}
+
+@Serializable
 data class Grid<T>(private val grid: Map<Coordinate, T> = mapOf()) :
-    Iterable<Pair<Coordinate, T>>, Cloneable {
+    Iterable<Pair<Coordinate, T>>, Cloneable, Collection<Pair<Coordinate, T>> {
 
     public override fun clone(): Grid<T> {
         return Grid(grid)
@@ -271,8 +303,17 @@ data class Grid<T>(private val grid: Map<Coordinate, T> = mapOf()) :
     override fun iterator(): Iterator<Pair<Coordinate, T>> {
         return grid.entries.map { e -> Pair(e.key, e.value) }.iterator()
     }
+
+    override val size: Int
+        get() = grid.keys.size
+
+    override fun contains(element: Pair<Coordinate, T>) = grid[element.first] == element.second
+
+    override fun containsAll(elements: Collection<Pair<Coordinate, T>>) = elements.all(::contains)
+    override fun isEmpty() = size == 0
 }
 
+@Serializable
 data class Coordinate(val x: Int, val y: Int) {
     /**
      * Block selection

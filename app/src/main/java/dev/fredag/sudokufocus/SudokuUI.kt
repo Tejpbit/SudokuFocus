@@ -67,7 +67,7 @@ fun SudokuUI(
     navController: NavController,
     sudoku: Sudoku,
     settingsViewModel: SettingsViewModel,
-    updateSudoku: (sudoku: Sudoku) -> Unit
+    updateSudoku: (sudoku: Sudoku) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
 

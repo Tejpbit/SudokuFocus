@@ -34,7 +34,8 @@ fun Campaign(navController: NavHostController, sudokuRepoViewModel: SudokuRepoVi
     ) {
         items(campaignSudokus.size) { index ->
             Thing(index + 1) {
-                navController.navigate("game/campaign/$index")
+                sudokuRepoViewModel.setCurrentGame(campaignSudokus[index])
+                navController.navigate(Routes.gamePlay)
             }
         }
     }

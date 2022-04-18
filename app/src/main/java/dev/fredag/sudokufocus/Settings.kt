@@ -1,6 +1,5 @@
 package dev.fredag.sudokufocus
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,11 +52,6 @@ fun Settings(viewModel: SettingsViewModel) {
 class SettingsViewModel @Inject constructor(
 //    private val savedState: SavedStateHandle // TODO store configuration between restarts
 ) : ViewModel() {
-
-    init {
-        Log.d("HELO", "new settings view model")
-    }
-
     var showSelectorUi: Boolean by mutableStateOf(true)
         private set
 
