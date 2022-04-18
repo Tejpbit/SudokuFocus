@@ -51,6 +51,12 @@ class SudokuRepoViewModel @Inject constructor(
         return sudokuEntity
     }
 
+    fun deleteSudoku(sudokuEntity: SudokuEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            sudokuRepository.deleteSudoku(sudokuEntity)
+        }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getSudoku(sudokuSource: SudokuSource): Flow<List<SudokuEntity>> {
         return sudokuRepository.getSavedSudoku(sudokuSource)

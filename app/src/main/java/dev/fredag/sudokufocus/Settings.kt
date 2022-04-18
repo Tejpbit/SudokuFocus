@@ -21,6 +21,7 @@ fun Settings(viewModel: SettingsViewModel) {
     var expanded by remember { mutableStateOf(false) }
 
     Column {
+        ScreenHeader("Settings")
         Row {
             Text(
                 text = "Selector type: ${viewModel.selectorType.name}",

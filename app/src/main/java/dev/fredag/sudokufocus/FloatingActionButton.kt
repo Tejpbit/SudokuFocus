@@ -16,20 +16,21 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIconType
+import com.guru.fontawesomecomposelib.FaIcons
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun FloatingActionButton(
-    @DrawableRes
-    icon: Int,
+    icon: FaIconType,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onTouchDown: () -> Unit = {},
     onTouchRelease: () -> Unit = {},
 ) {
-    Image(
-        painter = painterResource(id = icon),
-        contentDescription = null,
+    FaIcon(
+        faIcon = icon,
         modifier = Modifier
             .padding(10.dp)
             .clip(CircleShape)
@@ -51,7 +52,7 @@ private fun FloatingActionButton(
 @Composable
 fun SettingsButton(navController: NavController, modifier: Modifier = Modifier) {
     FloatingActionButton(
-        if (MaterialTheme.colors.isLight) R.drawable.ic_cog_black else R.drawable.ic_cog_white,
+        FaIcons.Cog,
         modifier = modifier,
     ) {
         navController.navigate(
@@ -64,7 +65,7 @@ fun SettingsButton(navController: NavController, modifier: Modifier = Modifier) 
 @Composable
 fun PeekButton(onTouchDown: () -> Unit, onTouchRelease: () -> Unit, modifier: Modifier = Modifier) {
     FloatingActionButton(
-        if (MaterialTheme.colors.isLight) R.drawable.ic_eye_black else R.drawable.ic_eye_white,
+        FaIcons.Eye,
         modifier = modifier,
         onTouchDown = onTouchDown,
         onTouchRelease = onTouchRelease,

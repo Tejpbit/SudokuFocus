@@ -11,6 +11,7 @@ import javax.inject.Singleton
 interface SudokuRepository {
     val campaignSudokus: StateFlow<List<SudokuSource.ValidUnparsed>>
     fun saveSudoku(sudokuEntity: SudokuEntity)
+    fun deleteSudoku(sudokuEntity: SudokuEntity)
     fun getLastPlayed(): Flow<SudokuEntity?>
     fun getLastPlayedForSource(sudokuSource: SudokuSource): Flow<SudokuEntity?>
     fun getOngoingSudokus(): Flow<List<SudokuEntity>>
@@ -31,6 +32,10 @@ class LocalSudokuRepository @Inject constructor(
 
     override fun saveSudoku(sudokuEntity: SudokuEntity) {
         sudokuDao.insertWithTimestamp(sudokuEntity)
+    }
+
+    override fun deleteSudoku(sudokuEntity: SudokuEntity) {
+        sudokuDao.delete(sudokuEntity)
     }
 
     override fun getLastPlayed(): Flow<SudokuEntity?> {

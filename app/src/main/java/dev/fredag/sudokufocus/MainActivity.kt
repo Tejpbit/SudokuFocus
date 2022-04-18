@@ -112,36 +112,6 @@ fun Router(navController: NavHostController) {
 }
 
 @Composable
-fun SavedGamesScreen(
-    navController: NavController,
-    sudokuRepoViewModel: SudokuRepoViewModel = viewModelAtRoute(navController, root)
-) {
-    val ongoingSudokuSources by sudokuRepoViewModel.getOngoingSudokus().collectAsState(listOf())
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(text = "Saved games")
-        }
-        for (sudokuEntity in ongoingSudokuSources) {
-            val text = when (sudokuEntity.source) {
-                is SudokuSource.Parsed -> "From parsed ${sudokuEntity.source}"
-                is SudokuSource.SudokuSeed -> "From Seed ${sudokuEntity.source.value}"
-                is SudokuSource.Unparsed -> "From unparsed"
-                is SudokuSource.ValidUnparsed -> "From valid unparsed ${sudokuEntity.uid}"
-                is SudokuSource.Daily -> "Daily from ${sudokuEntity.source.date}"
-            }
-            Text(
-                text, modifier = Modifier.clickable {
-                    sudokuRepoViewModel.setCurrentGame(sudokuEntity.source)
-                    navController.navigate(gamePlay)
-                }
-            )
-
-        }
-    }
-}
-
-@Composable
 inline fun <reified T : ViewModel> viewModelAtRoute(
     navController: NavController,
     route: String

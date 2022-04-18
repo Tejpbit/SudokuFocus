@@ -25,17 +25,20 @@ fun Campaign(navController: NavHostController, sudokuRepoViewModel: SudokuRepoVi
 
     val campaignSudokus by sudokuRepoViewModel.campaignSudokos.collectAsState()
 
-    LazyVerticalGrid(
-        cells = GridCells.Adaptive(64.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp)
-            .background(color = MaterialTheme.colors.background),
-    ) {
-        items(campaignSudokus.size) { index ->
-            Thing(index + 1) {
-                sudokuRepoViewModel.setCurrentGame(campaignSudokus[index])
-                navController.navigate(Routes.gamePlay)
+    Column {
+        ScreenHeader("Campaign")
+        LazyVerticalGrid(
+            cells = GridCells.Adaptive(64.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+                .background(color = MaterialTheme.colors.background),
+        ) {
+            items(campaignSudokus.size) { index ->
+                Thing(index + 1) {
+                    sudokuRepoViewModel.setCurrentGame(campaignSudokus[index])
+                    navController.navigate(Routes.gamePlay)
+                }
             }
         }
     }
