@@ -31,6 +31,7 @@ private fun FloatingActionButton(
 ) {
     FaIcon(
         faIcon = icon,
+        tint = MaterialTheme.colors.onBackground,
         modifier = Modifier
             .padding(10.dp)
             .clip(CircleShape)
