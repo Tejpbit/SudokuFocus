@@ -159,28 +159,29 @@ private fun sudokuInteractionStrategy(
     val previouslySubmittedValue = sudoku.getSubmittedValueAt(activatedCoord)
     val previouslyGuessedValue = sudoku.getGuessedValuesAt(activatedCoord)
 
+    val activatedNumber = activatedToken.toInt()
     return when {
         (previouslySubmittedValue == null && previouslyGuessedValue == null) -> {
-            sudoku.submitCell(activatedToken.toInt(), activatedCoord)
+            sudoku.submitCell(activatedNumber, activatedCoord)
         }
-        previouslySubmittedValue == activatedToken.toInt() && previouslyGuessedValue == null -> {
+        previouslySubmittedValue == activatedNumber && previouslyGuessedValue == null -> {
             sudoku.clearCell(activatedCoord)
         }
         previouslySubmittedValue != null && previouslyGuessedValue == null -> {
             sudoku
                 .clearCell(activatedCoord)
-                .toggleGuessOnCell(activatedToken.toInt(), activatedCoord)
+                .toggleGuessOnCell(activatedNumber, activatedCoord)
                 .toggleGuessOnCell(previouslySubmittedValue, activatedCoord)
         }
         previouslySubmittedValue == null && previouslyGuessedValue != null &&
-                previouslyGuessedValue.contains(activatedToken.toInt()) -> {
+                previouslyGuessedValue.contains(activatedNumber) -> {
             sudoku
-                .submitCell(activatedToken.toInt(), activatedCoord)
+                .submitCell(activatedNumber, activatedCoord)
                 .clearGuessesOnCell(activatedCoord)
         }
         previouslySubmittedValue == null && previouslyGuessedValue != null -> {
             sudoku
-                .toggleGuessOnCell(activatedToken.toInt(), activatedCoord)
+                .toggleGuessOnCell(activatedNumber, activatedCoord)
         }
         else -> {
             sudoku
