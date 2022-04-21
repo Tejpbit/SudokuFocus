@@ -438,11 +438,20 @@ fun DrawScope.drawSudokuField(
             )
         }
 
-        sudoku.getGuessedValuesAt(coord)?.let { guessed ->
+        // Draw guesses
+        // 1 2 3
+        // 4 5 6
+        // 7 8 9
+        val yOffset = cellSize.height / 4 // offset that looks good for number to be inside their square
+        val xOffset = cellSize.width / 6 // offset numbers with half their space to the next number
+        sudoku.getGuessedValuesAt(coord)?.map { guessed ->
+
+            val guessX = (guessed - 1) % 3
+            val guessY = (guessed - 1) / 3
             drawText(
-                guessed.sorted().joinToString(" "),
-                topLeft.x + cellSize.width / 2,
-                topLeft.y + cellSize.height * 0.9f,
+                guessed.toString(),
+                topLeft.x + (cellSize.width / 3) * guessX + xOffset,
+                topLeft.y + (cellSize.height / 3) * guessY + yOffset,
                 guessValuePaint,
                 typeFace
             )
